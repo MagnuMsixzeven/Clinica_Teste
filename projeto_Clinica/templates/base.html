@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}OdontoAgenda{% endblock %} | Agendamento Online</title>
+    <meta name="description" content="Agende sua consulta odontológica online de forma rápida e fácil.">
+    <meta property="og:title" content="OdontoAgenda - Agendamento Online">
+    <meta property="og:description" content="Agende sua consulta odontológica online de forma rápida e fácil. Escolha seu dentista, horário e procedimento em poucos cliques.">
+    <meta property="og:type" content="website">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+    .header-panel-btn{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:var(--primary);color:#fff;font-size:1rem;transition:all .2s;text-decoration:none;}
+    .header-panel-btn:hover{background:var(--primary-dark,#0a7c8c);transform:rotate(90deg);}
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Header -->
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="{{ url_for('home') }}" class="logo">
+                <div class="logo-icon">O</div>
+                <div class="logo-text">Odonto<span>Agenda</span></div>
+            </a>
+
+            <nav class="nav-links">
+                <a href="{{ url_for('home') }}" class="{{ 'active' if request.path == '/' }}">Início</a>
+                <a href="{{ url_for('agendar') }}" class="{{ 'active' if request.path == '/agendar' }}">Agendar Consulta</a>
+                <a href="{{ url_for('especialidades') }}" class="{{ 'active' if request.path == '/especialidades' }}">Especialidades</a>
+                <a href="{{ url_for('equipe') }}" class="{{ 'active' if request.path == '/equipe' }}">Nossa Equipe</a>
+            </nav>
+
+            <div class="header-cta">
+                {% if session.get('papel') %}
+                <a href="{% if session.papel == 'admin' %}{{ url_for('admin_dashboard') }}{% elif session.papel == 'medico' %}{{ url_for('painel_profissional') }}{% elif session.papel == 'recepcionista' %}{{ url_for('recepcao_painel') }}{% elif session.papel == 'enfermeira' %}{{ url_for('enfermeira_painel') }}{% endif %}"
+                   class="header-panel-btn" title="Voltar ao painel">
+                    <i class="fas fa-cog"></i>
+                </a>
+                {% endif %}
+                <a href="tel:+5569999999999" class="header-phone">
+                    <i class="fas fa-phone"></i> (69) 99999-9999
+                </a>
+                <a href="{{ url_for('agendar') }}" class="btn btn-primary">Agendar Agora</a>
+            </div>
+
+            <button class="hamburger" onclick="toggleMenu()" aria-label="Menu">
+                <i class="fas fa-bars" id="menu-icon"></i>
+            </button>
+        </div>
+
+        <div class="mobile-menu" id="mobile-menu">
+            <a href="{{ url_for('home') }}" class="{{ 'active' if request.path == '/' }}">Início</a>
+            <a href="{{ url_for('agendar') }}" class="{{ 'active' if request.path == '/agendar' }}">Agendar Consulta</a>
+            <a href="{{ url_for('especialidades') }}" class="{{ 'active' if request.path == '/especialidades' }}">Especialidades</a>
+            <a href="{{ url_for('equipe') }}" class="{{ 'active' if request.path == '/equipe' }}">Nossa Equipe</a>
+            {% if session.get('papel') %}
+            <a href="{% if session.papel == 'admin' %}{{ url_for('admin_dashboard') }}{% elif session.papel == 'medico' %}{{ url_for('painel_profissional') }}{% elif session.papel == 'recepcionista' %}{{ url_for('recepcao_painel') }}{% endif %}"
+               class="btn btn-outline" style="margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;">
+                <i class="fas fa-cog"></i> Voltar ao Painel
+            </a>
+            {% endif %}
+            <a href="{{ url_for('agendar') }}" class="btn btn-primary btn-full" style="margin-top:12px;">Agendar Agora</a>
+            <a href="tel:+5569999999999" class="header-phone" style="justify-content:center;margin-top:8px;">
+                <i class="fas fa-phone"></i> (69) 99999-9999
+            </a>
+        </div>
+    </header>
+
+    <!-- Content -->
+    {% block content %}{% endblock %}
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="{{ url_for('home') }}" class="logo">
+                        <div class="logo-icon">O</div>
+                        <div class="logo-text" style="color:#fff;">Odonto<span>Agenda</span></div>
+                    </a>
+                    <p>Cuidando do seu sorriso com tecnologia e humanização. Agende sua consulta online de forma rápida e segura.</p>
+                    <div class="footer-socials">
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-col">
+                    <h4>Links Rápidos</h4>
+                    <ul>
+                        <li><a href="{{ url_for('agendar') }}">Agendar Consulta</a></li>
+                        <li><a href="{{ url_for('especialidades') }}">Especialidades</a></li>
+                        <li><a href="{{ url_for('equipe') }}">Nossa Equipe</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4>Contato</h4>
+                    <ul class="footer-contact">
+                        <li><i class="fas fa-map-marker-alt"></i> Av. Paulista, 1234 - Sala 501<br>Bela Vista, São Paulo - SP</li>
+                        <li><i class="fas fa-phone"></i> <a href="tel:+5569999999999">(69) 99999-9999</a></li>
+                        <li><i class="fas fa-envelope"></i> <a href="mailto:contato@odontoagenda.com">contato@odontoagenda.com</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4>Horário de Funcionamento</h4>
+                    <ul class="footer-contact">
+                        <li><i class="fas fa-clock"></i> <div>Segunda a Sexta<br><strong>07:00 - 19:00</strong></div></li>
+                        <li><i class="fas fa-clock"></i> <div>Sábado<br><strong>08:00 - 14:00</strong></div></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div class="container" style="display:flex;justify-content:space-between;align-items:center;">
+                <p>&copy; 2026 OdontoAgenda. Todos os direitos reservados.</p>
+                <div class="footer-bottom-links">
+                    <a href="#">Política de Privacidade</a>
+                    <a href="#">Termos de Uso</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const icon = document.getElementById('menu-icon');
+            menu.classList.toggle('open');
+            icon.classList.toggle('fa-bars');
+            icon.classList.toggle('fa-xmark');
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

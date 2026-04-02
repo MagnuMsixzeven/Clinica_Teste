@@ -1,0 +1,193 @@
+app.config['TELEFONE_CLINICA'] = '(69) 2222-2222'{% extends "base.html" %}
+{% block title %}Perfil – {{ prof.nome }}{% endblock %}
+
+{% block head %}
+<style>
+.nav-links, .header-cta, .hamburger, .mobile-menu, .site-footer { display:none !important; }
+.header-inner { justify-content:flex-start !important; }
+
+.perfil-foto-area{display:flex;align-items:center;gap:18px;margin-bottom:20px;}
+.perfil-foto-preview{width:80px;height:80px;border-radius:18px;object-fit:cover;border:2px solid var(--border);background:var(--bg-muted);}
+.perfil-foto-actions{display:flex;flex-direction:column;gap:6px;}
+.perfil-foto-actions label{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid var(--border);border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;color:var(--text);}
+.perfil-foto-actions label:hover{background:var(--bg-muted);border-color:var(--primary);color:var(--primary);}
+.perfil-foto-actions .btn-remove-foto{padding:6px 14px;border:1px solid var(--border);border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;background:none;color:var(--destructive);transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.perfil-foto-actions .btn-remove-foto:hover{background:rgba(239,68,68,.06);border-color:var(--destructive);}
+.perfil-section-title{font-size:1.1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;color:var(--text);}
+.perfil-section-title i{color:var(--primary);font-size:1rem;}
+.perfil-divider{border:none;border-top:1px solid var(--border);margin:24px 0;}
+.senha-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.senha-grid{grid-template-columns:1fr;}}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section" style="padding-top:32px;background:var(--bg-muted);min-height:calc(100vh - 68px);">
+    <div class="container" style="max-width:660px;">
+
+        <a href="{{ url_for('painel_profissional') }}" class="back-link"><i class="fas fa-arrow-left"></i> Voltar ao painel</a>
+
+        <div class="panel-card" style="margin-bottom:24px;">
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+                <img src="{{ prof.foto }}" alt="" style="width:72px;height:72px;border-radius:16px;object-fit:cover;">
+                <div>
+                    <h1 style="font-size:1.3rem;">{{ prof.nome }}</h1>
+                    <p style="color:var(--primary);font-weight:600;font-size:.92rem;">{{ prof.cro }}</p>
+                </div>
+            </div>
+
+            <div class="team-label">Especialidades</div>
+            <div class="tag-list" style="margin-bottom:24px;">
+                {% for e in especialidades_prof %}
+                <span class="tag tag-primary">{{ e }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="team-label">Dias de atendimento</div>
+            <p style="font-size:.92rem;margin-bottom:16px;">
+                {{ prof.dias }} • {{ prof.horario_inicio }} – {{ prof.horario_fim }}
+            </p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}" style="margin-bottom:16px;"><i class="fas fa-check-circle"></i> {{ msg }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- ═══ EDITAR DADOS PESSOAIS ═══ -->
+        <div class="panel-card" style="margin-bottom:24px;">
+            <div class="perfil-section-title"><i class="fas fa-user-pen"></i> Meus Dados</div>
+
+            <form method="POST" action="{{ url_for('perfil_profissional_editar') }}" enctype="multipart/form-data">
+                <!-- Foto -->
+                <div class="perfil-foto-area">
+                    <img src="{{ prof.foto }}" alt="" class="perfil-foto-preview" id="foto-preview">
+                    <div class="perfil-foto-actions">
+                        <label><i class="fas fa-camera"></i> Alterar foto
+                            <input type="file" name="foto_file" accept="image/*" style="display:none;" id="foto-input">
+                        </label>
+                        <button type="button" class="btn-remove-foto" id="btn-remove-foto"><i class="fas fa-trash"></i> Remover foto</button>
+                        <input type="hidden" name="remover_foto" id="remover-foto-flag" value="">
+                    </div>
+                </div>
+
+                <!-- Nome -->
+                <div class="form-group full" style="margin-bottom:14px;">
+                    <label>Nome completo</label>
+                    <input type="text" name="nome" value="{{ prof.nome }}" required>
+                </div>
+
+                <!-- Email e Telefone -->
+                <div class="form-grid" style="margin-bottom:14px;">
+                    <div class="form-group">
+                        <label>E-mail</label>
+                        <input type="email" name="email" value="{{ user.email or '' }}" placeholder="seu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Telefone</label>
+                        <input type="tel" name="telefone" value="{{ user.telefone or '' }}" placeholder="(11) 99999-0000">
+                    </div>
+                </div>
+
+                <hr class="perfil-divider">
+
+                <!-- Senha -->
+                <div class="perfil-section-title" style="font-size:.95rem;"><i class="fas fa-lock"></i> Alterar Senha <small style="font-weight:400;color:var(--text-secondary);margin-left:6px;">(opcional)</small></div>
+
+                <div class="senha-grid">
+                    <div class="form-group">
+                        <label>Senha atual</label>
+                        <input type="password" name="senha_atual" placeholder="••••••••" autocomplete="current-password">
+                    </div>
+                    <div class="form-group">
+                        <label>Nova senha</label>
+                        <input type="password" name="nova_senha" placeholder="••••••••" autocomplete="new-password">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-full" style="margin-top:20px;">
+                    <i class="fas fa-save"></i> Salvar Alterações
+                </button>
+            </form>
+        </div>
+
+        <!-- Push Notifications (celular/desktop) -->
+        <div class="push-card">
+            <div class="push-card-icon"><i class="fas fa-mobile-screen-button"></i></div>
+            <div class="push-card-info">
+                <strong>Notificações Push</strong>
+                <small>Receba alertas em tempo real no celular ou desktop</small>
+                <div id="push-status"></div>
+            </div>
+            <label class="toggle-switch-wrap">
+                <input type="checkbox" id="push-toggle" class="toggle-switch">
+            </label>
+        </div>
+
+        <div class="panel-card" style="margin-top:24px;">
+            <h2 style="font-size:1.2rem;margin-bottom:20px;"><i class="fas fa-bell" style="color:var(--primary);margin-right:8px;"></i>Preferências de Notificação</h2>
+
+            <form method="POST" action="{{ url_for('perfil_profissional') }}">
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label>E-mail para notificações</label>
+                        <input type="email" name="email" value="{{ user.email or '' }}" placeholder="seu@email.com">
+                    </div>
+                    <div class="form-group full">
+                        <label>Telefone / WhatsApp</label>
+                        <input type="tel" name="telefone" value="{{ user.telefone or '' }}" placeholder="(11) 99999-0000">
+                    </div>
+
+                    <div class="form-group full" style="margin-top:8px;">
+                        <div class="team-label">Canais de notificação</div>
+                        <div class="toggle-list">
+                            <label class="toggle-item">
+                                <span><i class="fas fa-envelope"></i> E-mail</span>
+                                <input type="checkbox" name="notif_email" class="toggle-switch" {{ 'checked' if user.notif_email else '' }}>
+                            </label>
+                            <label class="toggle-item">
+                                <span><i class="fab fa-whatsapp"></i> WhatsApp</span>
+                                <input type="checkbox" name="notif_whatsapp" class="toggle-switch" {{ 'checked' if user.notif_whatsapp else '' }}>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-full" style="margin-top:24px;">
+                    <i class="fas fa-save"></i> Salvar Preferências
+                </button>
+            </form>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/push.js') }}"></script>
+<script>
+/* Preview da foto ao selecionar */
+document.getElementById('foto-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            document.getElementById('foto-preview').src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+        document.getElementById('remover-foto-flag').value = '';
+    }
+});
+
+/* Remover foto */
+document.getElementById('btn-remove-foto').addEventListener('click', function() {
+    document.getElementById('remover-foto-flag').value = '1';
+    document.getElementById('foto-input').value = '';
+    const nome = '{{ prof.nome }}'.replace(/ /g, '+');
+    document.getElementById('foto-preview').src = `https://ui-avatars.com/api/?name=${nome}&background=0e7490&color=fff&size=200`;
+});
+</script>
+{% endblock %}

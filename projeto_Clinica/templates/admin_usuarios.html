@@ -1,0 +1,360 @@
+{% extends "base_admin.html" %}
+{% block title %}Usuários{% endblock %}
+{% block page_title %}Usuários do Sistema{% endblock %}
+
+{% block content %}
+<div class="adm-card">
+    <div class="adm-card-header">
+        <h2><i class="fas fa-users-gear"></i> {{ usuarios|length }} usuários cadastrados</h2>
+        <span style="font-size:.82rem;color:var(--adm-text-sec);">Clique com botão direito em um usuário para editar</span>
+    </div>
+    <div class="adm-table-wrap">
+        <table class="adm-table">
+            <thead>
+                <tr><th></th><th>Nome</th><th>Login</th><th>Papel</th><th>CRM/CRO</th><th>Email</th><th>Status</th><th>Criado em</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for u in usuarios %}
+                <tr class="usr-row{% if u.papel != 'admin' %} usr-editavel{% endif %}{% if u.papel == 'medico' %} usr-medico{% endif %}"
+                    data-uid="{{ u.id }}"
+                    data-nome="{{ u.nome }}"
+                    data-login="{{ u.login }}"
+                    data-email="{{ u.email or '' }}"
+                    data-foto="{{ u.foto or '' }}"
+                    data-cro="{{ u.cro or '' }}"
+                    data-papel="{{ u.papel }}"
+                    data-h-inicio="{{ u.horario_inicio or '08:00' }}"
+                    data-h-fim="{{ u.horario_fim or '18:00' }}"
+                    data-alm-inicio="{{ u.almoco_inicio or '12:00' }}"
+                    data-alm-fim="{{ u.almoco_fim or '13:00' }}"
+                    data-slot="{{ u.slot_duracao or 45 }}"
+                    data-dias="{{ u.dias_atendimento or '1,2,3,4,5' }}"
+                    data-modo="{{ u.modo_agenda or 'slots' }}"
+                    {% if u.papel != 'admin' %}oncontextmenu="openCtxMenu(event, this)"{% endif %}>
+                    <td style="width:44px;">
+                        {% if u.foto %}
+                        <img src="{{ u.foto }}" class="adm-mini-avatar" alt="">
+                        {% else %}
+                        <div class="adm-mini-avatar" style="background:var(--adm-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;">
+                            {{ u.nome[0] }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ u.nome }}</strong></td>
+                    <td><code style="background:var(--adm-bg);padding:2px 8px;border-radius:4px;font-size:.82rem;">{{ u.login }}</code></td>
+                    <td>
+                        {% if u.papel == 'admin' %}<span class="adm-badge bg-warn"><i class="fas fa-shield-halved"></i> Admin</span>
+                        {% elif u.papel == 'medico' %}<span class="adm-badge bg-primary"><i class="fas fa-user-doctor"></i> Médico</span>
+                        {% elif u.papel == 'recepcionista' %}<span class="adm-badge bg-accent"><i class="fas fa-headset"></i> Recepção</span>
+                        {% elif u.papel == 'enfermeira' %}<span class="adm-badge bg-info"><i class="fas fa-user-nurse"></i> Enfermeira</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ u.cro or '—' }}</td>
+                    <td style="font-size:.82rem;">{{ u.email or '—' }}</td>
+                    <td>
+                        {% if u.ativo %}<span class="adm-badge bg-accent">Ativo</span>
+                        {% else %}<span class="adm-badge bg-muted">Inativo</span>{% endif %}
+                    </td>
+                    <td>{{ u.criado_em[:10] if u.criado_em else '—' }}</td>
+                    <td>
+                        {% if u.papel != 'admin' %}
+                        <button class="adm-btn-icon primary" title="Editar usuário"
+                                onclick="openEditModal(this.closest('tr'))">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Context menu -->
+<div class="ctx-menu" id="ctxMenu">
+    <button onclick="ctxAction('edit')"><i class="fas fa-pen"></i> Editar Dados</button>
+    <button onclick="ctxAction('foto')"><i class="fas fa-camera"></i> Alterar Foto</button>
+    <button onclick="ctxAction('toggle')"><i class="fas fa-power-off"></i> Ativar/Desativar</button>
+</div>
+
+<!-- Modal editar médico -->
+<div class="adm-modal-overlay" id="editModal" style="display:none;" onclick="if(event.target===this)closeEditModal()">
+    <div class="adm-modal" style="max-width:540px;">
+        <div class="adm-modal-header">
+            <h3 id="editModalTitle"><i class="fas fa-user-edit"></i> Editar Usuário</h3>
+            <button class="adm-modal-close" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="adm-modal-body">
+            <form id="editForm" method="POST" action="{{ url_for('admin_editar_usuario') }}" enctype="multipart/form-data">
+                <input type="hidden" name="user_id" id="ed_uid">
+
+                <!-- Preview foto -->
+                <div style="text-align:center;margin-bottom:18px;">
+                    <img id="ed_foto_preview" src="" alt="" style="width:80px;height:80px;border-radius:16px;object-fit:cover;margin:0 auto 10px;display:none;border:3px solid var(--adm-border);">
+                    <div id="ed_foto_placeholder" style="width:80px;height:80px;border-radius:16px;background:var(--adm-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;margin:0 auto 10px;"></div>
+                    <label style="cursor:pointer;font-size:.82rem;color:var(--adm-primary);font-weight:600;">
+                        <i class="fas fa-camera"></i> Trocar foto
+                        <input type="file" name="foto_file" id="ed_foto_file" accept="image/*" style="display:none;" onchange="previewFoto(this)">
+                    </label>
+                    <div style="margin-top:4px;">
+                        <input type="text" name="foto_url" id="ed_foto_url" placeholder="Ou cole a URL da foto"
+                               style="width:100%;max-width:360px;padding:6px 12px;border:1.5px solid var(--adm-border);border-radius:var(--adm-radius-sm);font-size:.82rem;">
+                    </div>
+                </div>
+
+                <div class="adm-form-row">
+                    <div class="adm-form-group">
+                        <label>Nome completo</label>
+                        <input type="text" name="nome" id="ed_nome" required>
+                    </div>
+                    <div class="adm-form-group">
+                        <label>Login</label>
+                        <input type="text" name="login" id="ed_login" required>
+                    </div>
+                </div>
+                <div class="adm-form-row">
+                    <div class="adm-form-group medico-field">
+                        <label>CRM / CRO</label>
+                        <input type="text" name="cro" id="ed_cro" placeholder="CRO-SP 12345">
+                    </div>
+                    <div class="adm-form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" id="ed_email" placeholder="email@exemplo.com">
+                    </div>
+                </div>
+                <div class="adm-form-row">
+                    <div class="adm-form-group">
+                        <label>Nova Senha <small style="font-weight:400;color:var(--adm-text-sec);">(deixe vazio para manter)</small></label>
+                        <input type="password" name="nova_senha" id="ed_senha" placeholder="••••••••" autocomplete="new-password">
+                    </div>
+                    <div class="adm-form-group medico-field">
+                        <label>Duração do Slot (min)</label>
+                        <input type="number" name="slot_duracao" id="ed_slot" min="10" max="120" step="5">
+                    </div>
+                </div>
+
+                <!-- Configuração de Horários -->
+                <div class="medico-field" style="border-top:1.5px solid var(--adm-border);padding-top:16px;margin-top:8px;">
+                    <h4 style="font-size:.85rem;font-weight:700;margin-bottom:12px;color:var(--adm-primary);"><i class="fas fa-clock" style="margin-right:6px;"></i>Horários de Atendimento</h4>
+                    <div class="adm-form-row">
+                        <div class="adm-form-group">
+                            <label>Início expediente</label>
+                            <input type="time" name="horario_inicio" id="ed_h_inicio">
+                        </div>
+                        <div class="adm-form-group">
+                            <label>Fim expediente</label>
+                            <input type="time" name="horario_fim" id="ed_h_fim">
+                        </div>
+                    </div>
+                    <div class="adm-form-row">
+                        <div class="adm-form-group">
+                            <label>Início almoço</label>
+                            <input type="time" name="almoco_inicio" id="ed_alm_inicio">
+                        </div>
+                        <div class="adm-form-group">
+                            <label>Fim almoço</label>
+                            <input type="time" name="almoco_fim" id="ed_alm_fim">
+                        </div>
+                    </div>
+                    <div class="adm-form-group" style="margin-bottom:4px;">
+                        <label>Dias de atendimento</label>
+                        <div id="ed_dias_wrap" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+                            <label class="dia-check"><input type="checkbox" value="0"> Dom</label>
+                            <label class="dia-check"><input type="checkbox" value="1"> Seg</label>
+                            <label class="dia-check"><input type="checkbox" value="2"> Ter</label>
+                            <label class="dia-check"><input type="checkbox" value="3"> Qua</label>
+                            <label class="dia-check"><input type="checkbox" value="4"> Qui</label>
+                            <label class="dia-check"><input type="checkbox" value="5"> Sex</label>
+                            <label class="dia-check"><input type="checkbox" value="6"> Sáb</label>
+                        </div>
+                        <input type="hidden" name="dias_atendimento" id="ed_dias">
+                    </div>
+                </div>
+
+                <!-- Modo de Agendamento -->
+                <div class="medico-field" style="border-top:1.5px solid var(--adm-border);padding-top:16px;margin-top:8px;">
+                    <h4 style="font-size:.85rem;font-weight:700;margin-bottom:12px;color:var(--adm-primary);"><i class="fas fa-sliders" style="margin-right:6px;"></i>Modo de Agendamento</h4>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <label class="modo-option" id="modo-opt-slots">
+                            <input type="radio" name="modo_agenda" value="slots" id="ed_modo_slots">
+                            <div class="modo-card">
+                                <i class="fas fa-clock"></i>
+                                <strong>Horários Fixos</strong>
+                                <small>Paciente escolhe entre slots (08:00, 08:45, 09:30...)</small>
+                            </div>
+                        </label>
+                        <label class="modo-option" id="modo-opt-pre">
+                            <input type="radio" name="modo_agenda" value="pre_agendamento" id="ed_modo_pre">
+                            <div class="modo-card">
+                                <i class="fas fa-list-ol"></i>
+                                <strong>Pré-Agendamento</strong>
+                                <small>Fila sequencial a partir do horário de início</small>
+                            </div>
+                        </label>
+                    </div>
+                    <div id="modo-pre-info" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(14,116,144,.06);border-radius:8px;border-left:3px solid var(--adm-primary);font-size:.82rem;color:var(--adm-text-sec);">
+                        <i class="fas fa-info-circle" style="color:var(--adm-primary);margin-right:6px;"></i>
+                        No modo pré-agendamento, os pacientes escolhem apenas o <strong>dia</strong>. O horário é atribuído na ordem de chegada a partir do <strong>início do expediente</strong> definido acima.
+                    </div>
+                </div>
+
+                <div style="margin-top:16px;text-align:right;">
+                    <button type="submit" class="adm-btn primary" style="justify-content:center;min-width:160px;">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.dia-check {
+    display:inline-flex;align-items:center;gap:5px;
+    padding:6px 12px;border-radius:8px;font-size:.82rem;font-weight:600;
+    background:var(--adm-bg);border:1.5px solid var(--adm-border);cursor:pointer;
+    transition:all .15s;user-select:none;
+}
+.dia-check:has(input:checked) {
+    background:var(--adm-primary);color:#fff;border-color:var(--adm-primary);
+}
+.dia-check input { display:none; }
+
+.modo-option { cursor:pointer; flex:1; min-width:180px; }
+.modo-option input { display:none; }
+.modo-card {
+    padding:14px 16px;border-radius:10px;border:2px solid var(--adm-border);
+    background:var(--adm-bg);text-align:center;transition:all .2s;
+}
+.modo-card i { font-size:1.3rem;display:block;margin-bottom:6px;color:var(--adm-text-sec); }
+.modo-card strong { display:block;font-size:.85rem;margin-bottom:3px; }
+.modo-card small { font-size:.72rem;color:var(--adm-text-sec);line-height:1.3; }
+.modo-option input:checked + .modo-card {
+    border-color:var(--adm-primary);background:rgba(14,116,144,.06);
+}
+.modo-option input:checked + .modo-card i { color:var(--adm-primary); }
+</style>
+<script>
+/* ── Context Menu ─────────────────────────────────────────────── */
+let ctxRow = null;
+const ctxMenu = document.getElementById('ctxMenu');
+
+function openCtxMenu(e, tr) {
+    e.preventDefault();
+    ctxRow = tr;
+    ctxMenu.style.display = 'block';
+    ctxMenu.style.left = e.pageX + 'px';
+    ctxMenu.style.top = e.pageY + 'px';
+}
+document.addEventListener('click', () => ctxMenu.style.display = 'none');
+document.addEventListener('contextmenu', (e) => {
+    if (!e.target.closest('.usr-editavel')) ctxMenu.style.display = 'none';
+});
+
+function ctxAction(action) {
+    ctxMenu.style.display = 'none';
+    if (!ctxRow) return;
+    if (action === 'edit') openEditModal(ctxRow);
+    if (action === 'foto') { openEditModal(ctxRow); setTimeout(() => document.getElementById('ed_foto_file').click(), 200); }
+    if (action === 'toggle') {
+        if (confirm('Alterar status deste usuário?')) {
+            const uid = ctxRow.dataset.uid;
+            fetch('{{ url_for("admin_toggle_usuario") }}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_id: uid})
+            }).then(() => location.reload());
+        }
+    }
+}
+
+/* ── Edit Modal ───────────────────────────────────────────────── */
+function openEditModal(tr) {
+    const d = tr.dataset;
+    const papel = d.papel;
+    const isMedico = papel === 'medico';
+
+    /* Mostrar/esconder campos de médico */
+    document.querySelectorAll('.medico-field').forEach(el => el.style.display = isMedico ? '' : 'none');
+
+    /* Título dinâmico */
+    const titulos = {medico:'Médico', recepcionista:'Recepcionista', enfermeira:'Enfermeira'};
+    const icons = {medico:'fa-user-doctor', recepcionista:'fa-headset', enfermeira:'fa-user-nurse'};
+    document.getElementById('editModalTitle').innerHTML = `<i class="fas ${icons[papel] || 'fa-user-edit'}"></i> Editar ${titulos[papel] || 'Usuário'}`;
+
+    document.getElementById('ed_uid').value = d.uid;
+    document.getElementById('ed_nome').value = d.nome;
+    document.getElementById('ed_login').value = d.login;
+    document.getElementById('ed_email').value = d.email;
+    document.getElementById('ed_cro').value = d.cro;
+    document.getElementById('ed_foto_url').value = d.foto;
+    document.getElementById('ed_senha').value = '';
+
+    /* Horários */
+    document.getElementById('ed_h_inicio').value = d.hInicio || '08:00';
+    document.getElementById('ed_h_fim').value = d.hFim || '18:00';
+    document.getElementById('ed_alm_inicio').value = d.almInicio || '12:00';
+    document.getElementById('ed_alm_fim').value = d.almFim || '13:00';
+    document.getElementById('ed_slot').value = d.slot || '45';
+
+    /* Modo agenda */
+    const modo = d.modo || 'slots';
+    document.getElementById('ed_modo_slots').checked = (modo === 'slots');
+    document.getElementById('ed_modo_pre').checked = (modo === 'pre_agendamento');
+    toggleModoInfo();
+
+    /* Dias de atendimento */
+    const diasAtivos = (d.dias || '1,2,3,4,5').split(',');
+    document.querySelectorAll('#ed_dias_wrap input[type=checkbox]').forEach(cb => {
+        cb.checked = diasAtivos.includes(cb.value);
+    });
+    syncDias();
+
+    const preview = document.getElementById('ed_foto_preview');
+    const placeholder = document.getElementById('ed_foto_placeholder');
+    if (d.foto) {
+        preview.src = d.foto; preview.style.display = 'block';
+        placeholder.style.display = 'none';
+    } else {
+        preview.style.display = 'none';
+        placeholder.style.display = 'flex';
+        placeholder.textContent = d.nome[0];
+    }
+    document.getElementById('editModal').style.display = 'flex';
+}
+
+/* Sync dias checkboxes → hidden input */
+function syncDias() {
+    const checked = [];
+    document.querySelectorAll('#ed_dias_wrap input[type=checkbox]:checked').forEach(cb => checked.push(cb.value));
+    document.getElementById('ed_dias').value = checked.join(',');
+}
+document.querySelectorAll('#ed_dias_wrap input[type=checkbox]').forEach(cb => cb.addEventListener('change', syncDias));
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+function previewFoto(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const preview = document.getElementById('ed_foto_preview');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            document.getElementById('ed_foto_placeholder').style.display = 'none';
+            document.getElementById('ed_foto_url').value = '';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+/* ── Modo Agendamento toggle ── */
+function toggleModoInfo() {
+    const isPre = document.getElementById('ed_modo_pre').checked;
+    document.getElementById('modo-pre-info').style.display = isPre ? 'block' : 'none';
+}
+document.querySelectorAll('input[name="modo_agenda"]').forEach(r => r.addEventListener('change', toggleModoInfo));
+</script>
+{% endblock %}

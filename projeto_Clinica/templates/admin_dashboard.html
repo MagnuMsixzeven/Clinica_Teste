@@ -1,0 +1,206 @@
+{% extends "base_admin.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Stats -->
+<div class="adm-stats">
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon st-primary"><i class="fas fa-calendar-day"></i></div>
+        <div class="adm-stat-num">{{ total_hoje }}</div>
+        <div class="adm-stat-label">Hoje</div>
+    </div>
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon st-accent"><i class="fas fa-calendar-check"></i></div>
+        <div class="adm-stat-num">{{ total_mes }}</div>
+        <div class="adm-stat-label">Este mês</div>
+    </div>
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon st-danger"><i class="fas fa-calendar-xmark"></i></div>
+        <div class="adm-stat-num">{{ cancelados_mes }}</div>
+        <div class="adm-stat-label">Cancelados</div>
+    </div>
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon st-warn"><i class="fas fa-clock"></i></div>
+        <div class="adm-stat-num">{{ pendentes }}</div>
+        <div class="adm-stat-label">Pendentes</div>
+    </div>
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon st-accent"><i class="fas fa-brazilian-real-sign"></i></div>
+        <div class="adm-stat-num">R$ {{ "%.0f"|format(receita_mes) }}</div>
+        <div class="adm-stat-label">Receita mês</div>
+    </div>
+</div>
+
+<!-- Médicos atendendo hoje -->
+<div class="adm-card">
+    <div class="adm-card-header">
+        <h2><i class="fas fa-user-doctor"></i> Médicos Atendendo Hoje</h2>
+    </div>
+    <div class="adm-table-wrap">
+        <table class="adm-table">
+            <thead>
+                <tr><th>Profissional</th><th>CRO</th><th>Agend. hoje</th><th>Próximo</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                {% for m in medicos_hoje %}
+                <tr>
+                    <td><div class="adm-name-cell"><img src="{{ m.foto }}" class="adm-mini-avatar"> <strong>{{ m.nome }}</strong></div></td>
+                    <td>{{ m.cro }}</td>
+                    <td><span class="adm-badge bg-primary">{{ m.total_hoje }}</span></td>
+                    <td>{{ m.proximo or '—' }}</td>
+                    <td>
+                        {% if m.total_hoje > 0 %}
+                        <span class="adm-badge bg-accent"><i class="fas fa-circle" style="font-size:.5rem;"></i> Atendendo</span>
+                        {% else %}
+                        <span class="adm-badge bg-muted">Sem agenda</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Grid: Profissional mês + Especialidade mês -->
+<div class="adm-grid-2">
+    <div class="adm-card">
+        <div class="adm-card-header">
+            <h2><i class="fas fa-ranking-star"></i> Performance (mês)</h2>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead><tr><th>Profissional</th><th>Atend.</th><th>Cancel.</th><th>Taxa</th></tr></thead>
+                <tbody>
+                    {% for p in por_profissional %}
+                    <tr>
+                        <td><strong>{{ p.nome }}</strong></td>
+                        <td>{{ p.total }}</td>
+                        <td>{{ p.cancelados }}</td>
+                        <td>
+                            {% if p.total > 0 %}
+                            {% set taxa = ((1 - p.cancelados / p.total) * 100)|round|int %}
+                            <span class="adm-badge {% if taxa >= 85 %}bg-accent{% elif taxa >= 70 %}bg-warn{% else %}bg-danger{% endif %}">{{ taxa }}%</span>
+                            {% else %}<span class="adm-badge bg-muted">—</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="adm-card">
+        <div class="adm-card-header">
+            <h2><i class="fas fa-tooth"></i> Procedimentos (mês)</h2>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead><tr><th>Especialidade</th><th>Total</th><th>Convênio</th><th>Particular</th><th></th></tr></thead>
+                <tbody>
+                    {% if por_especialidade %}
+                        {% set totais = por_especialidade|map(attribute='total')|list %}
+                        {% set max_esp = totais|max if totais else 1 %}
+                    {% else %}{% set max_esp = 1 %}{% endif %}
+                    {% for e in por_especialidade %}
+                    <tr>
+                        <td><strong>{{ e.nome }}</strong></td>
+                        <td>{{ e.total }}</td>
+                        <td>{% if e.convenio %}<span class="adm-badge bg-primary" style="font-size:.72rem;">{{ e.convenio }}</span>{% else %}<span style="color:var(--adm-text-sec);">0</span>{% endif %}</td>
+                        <td>{% if e.particular %}<span class="adm-badge bg-accent" style="font-size:.72rem;">{{ e.particular }}</span>{% else %}<span style="color:var(--adm-text-sec);">0</span>{% endif %}</td>
+                        <td style="width:25%;"><div class="bar-bg"><div class="bar-fill" data-width="{{ (e.total / max_esp * 100) if max_esp > 0 else 0 }}"></div></div></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Últimos agendamentos -->
+<div class="adm-card">
+    <div class="adm-card-header">
+        <h2><i class="fas fa-clock-rotate-left"></i> Últimos Agendamentos</h2>
+        <a href="{{ url_for('admin_agendamentos') }}" class="adm-link">Ver todos <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="adm-table-wrap">
+        <table class="adm-table">
+            <thead><tr><th>Data</th><th>Hora</th><th>Paciente</th><th>Procedimento</th><th>Profissional</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody>
+                {% for ag in ultimos %}
+                <tr>
+                    <td>{{ ag.data[8:] }}/{{ ag.data[5:7] }}</td>
+                    <td><strong>{{ ag.hora }}</strong></td>
+                    <td>{{ ag.paciente_nome }}</td>
+                    <td>{{ ag.esp_nome }}</td>
+                    <td>Dr(a). {{ ag.prof_nome }}</td>
+                    <td>
+                        {% if ag.status == 'pendente' %}<span class="adm-badge bg-warn">Pendente</span>
+                        {% elif ag.status == 'confirmado' %}<span class="adm-badge bg-accent">Confirmado</span>
+                        {% elif ag.status == 'cancelado' %}<span class="adm-badge bg-danger">Cancelado</span>
+                        {% else %}<span class="adm-badge bg-muted">{{ ag.status }}</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if ag.status != 'cancelado' %}
+                        <div class="adm-actions">
+                            <form method="POST" action="{{ url_for('admin_cancelar', ag_id=ag.id) }}" style="display:inline;">
+                                <button type="submit" class="adm-btn-icon danger" title="Cancelar" onclick="return confirm('Cancelar este agendamento?')"><i class="fas fa-times"></i></button>
+                            </form>
+                            <button class="adm-btn-icon primary" title="Remarcar" onclick="openRemarcar({{ ag.id }}, '{{ ag.data }}', '{{ ag.hora }}', '{{ ag.prof_id }}')"><i class="fas fa-calendar-pen"></i></button>
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Remarcar -->
+<div class="adm-modal-overlay" id="modal-remarcar" style="display:none;">
+    <div class="adm-modal">
+        <div class="adm-modal-header">
+            <h3><i class="fas fa-calendar-pen"></i> Remarcar Agendamento</h3>
+            <button class="adm-modal-close" onclick="closeRemarcar()"><i class="fas fa-times"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('admin_remarcar') }}" class="adm-modal-body">
+            <input type="hidden" name="ag_id" id="rem-ag-id">
+            <div class="adm-form-row">
+                <div class="adm-form-group">
+                    <label>Nova Data</label>
+                    <input type="date" name="nova_data" id="rem-data" required>
+                </div>
+                <div class="adm-form-group">
+                    <label>Novo Horário</label>
+                    <input type="time" name="nova_hora" id="rem-hora" required>
+                </div>
+            </div>
+            <button type="submit" class="adm-btn primary"><i class="fas fa-check"></i> Confirmar Remarcação</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.bar-fill[data-width]').forEach(el => {
+    el.style.width = el.dataset.width + '%';
+});
+
+function openRemarcar(id, data, hora, profId) {
+    document.getElementById('rem-ag-id').value = id;
+    document.getElementById('rem-data').value = data;
+    document.getElementById('rem-hora').value = hora;
+    document.getElementById('modal-remarcar').style.display = 'flex';
+}
+function closeRemarcar() {
+    document.getElementById('modal-remarcar').style.display = 'none';
+}
+document.getElementById('modal-remarcar').addEventListener('click', function(e) {
+    if (e.target === this) closeRemarcar();
+});
+</script>
+{% endblock %}

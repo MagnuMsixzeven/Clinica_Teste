@@ -1,0 +1,728 @@
+{% extends "base.html" %}
+{% block title %}Painel – {{ user.nome }}{% endblock %}
+
+{% block head %}
+<style>
+/* Esconder nav do site e footer no painel do médico */
+.nav-links, .header-cta, .hamburger, .mobile-menu, .site-footer { display:none !important; }
+.header-inner { justify-content:flex-start !important; }
+
+/* ── Abas ── */
+.prof-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:24px;}
+.prof-tab{padding:12px 28px;font-size:.9rem;font-weight:600;color:var(--text-secondary);cursor:pointer;border:none;background:none;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;}
+.prof-tab:hover{color:var(--primary);background:rgba(14,116,144,.03);}
+.prof-tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+.prof-tab i{margin-right:6px;}
+.prof-tab-content{display:none;}
+.prof-tab-content.active{display:block;}
+
+/* ── Calendário do médico ── */
+.cal-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+.cal-toolbar-left{display:flex;align-items:center;gap:8px;}
+.cal-nav-btn{width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:var(--text);transition:background .15s;}
+.cal-nav-btn:hover{background:var(--bg-muted);}
+.cal-month-label{font-size:1.15rem;font-weight:700;min-width:180px;text-align:center;color:var(--text);}
+
+.prof-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.prof-cal-header{background:var(--primary);color:#fff;text-align:center;padding:10px 4px;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.prof-cal-cell{background:#fff;min-height:110px;padding:6px 8px;position:relative;transition:background .15s;}
+.prof-cal-cell:hover{background:rgba(14,116,144,.03);}
+.prof-cal-cell.other-month{background:var(--bg-muted);opacity:.45;}
+.prof-cal-cell.today{background:rgba(14,116,144,.06);box-shadow:inset 0 0 0 2px var(--primary);}
+.prof-cal-day{font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:4px;}
+.prof-cal-cell.today .prof-cal-day{color:var(--primary);}
+
+.prof-cal-items{display:flex;flex-direction:column;gap:2px;}
+.prof-cal-item{font-size:.7rem;padding:3px 6px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:default;line-height:1.3;}
+.prof-cal-item.status-confirmado{background:rgba(16,185,129,.15);color:#065f46;}
+.prof-cal-item.status-pendente{background:rgba(245,158,11,.15);color:#92400e;}
+.prof-cal-item.status-cancelado{background:rgba(239,68,68,.12);color:#991b1b;text-decoration:line-through;}
+.prof-cal-more{font-size:.65rem;color:var(--primary);font-weight:600;padding:2px 6px;cursor:pointer;}
+
+.prof-cal-tooltip{display:none;position:absolute;z-index:100;left:50%;top:100%;transform:translateX(-50%);min-width:260px;max-width:320px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.15);padding:12px;margin-top:4px;}
+.prof-cal-cell:hover .prof-cal-tooltip{display:block;}
+.prof-cal-tooltip-title{font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.prof-cal-tooltip-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,.04);}
+.prof-cal-tooltip-item:last-child{border:none;}
+.prof-cal-tooltip-hora{font-size:.75rem;font-weight:700;color:var(--primary);min-width:42px;}
+.prof-cal-tooltip-info{font-size:.75rem;line-height:1.35;}
+.prof-cal-tooltip-info strong{display:block;color:var(--text);}
+.prof-cal-tooltip-info small{color:var(--text-secondary);}
+.prof-cal-tooltip-status{font-size:.6rem;padding:2px 7px;border-radius:20px;font-weight:600;margin-left:auto;white-space:nowrap;}
+.prof-cal-tooltip-status.st-confirmado{background:rgba(16,185,129,.15);color:#065f46;}
+.prof-cal-tooltip-status.st-pendente{background:rgba(245,158,11,.15);color:#92400e;}
+.prof-cal-tooltip-status.st-cancelado{background:rgba(239,68,68,.12);color:#991b1b;}
+
+/* ── Notificações dropdown ── */
+.prof-notif-wrapper{position:relative;}
+.prof-notif-dropdown{display:none;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-height:420px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.15);z-index:500;overflow:hidden;}
+.prof-notif-dropdown.open{display:flex;flex-direction:column;}
+.prof-notif-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);}
+.prof-notif-header strong{font-size:.92rem;color:var(--text);}
+.prof-notif-mark{border:none;background:none;color:var(--primary);font-size:.75rem;cursor:pointer;font-weight:600;}
+.prof-notif-mark:hover{text-decoration:underline;}
+.prof-notif-list{overflow-y:auto;max-height:350px;flex:1;}
+.prof-notif-item{padding:12px 16px;border-bottom:1px solid rgba(0,0,0,.04);transition:background .15s;cursor:default;}
+.prof-notif-item:hover{background:var(--bg-muted);}
+.prof-notif-item.unread{background:rgba(14,116,144,.04);border-left:3px solid var(--primary);}
+.prof-notif-item-title{font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:2px;}
+.prof-notif-item-msg{font-size:.75rem;color:var(--text-secondary);line-height:1.4;}
+.prof-notif-item-time{font-size:.65rem;color:var(--text-secondary);margin-top:4px;opacity:.7;}
+.prof-notif-empty{padding:30px 16px;text-align:center;color:var(--text-secondary);font-size:.85rem;}
+
+/* ── Context menu ── */
+.prof-ctx-menu{display:none;position:fixed;z-index:600;min-width:220px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.18);padding:6px 0;overflow:hidden;}
+.prof-ctx-menu.open{display:block;}
+.prof-ctx-item{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:.82rem;font-weight:500;color:var(--text);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:background .12s;}
+.prof-ctx-item:hover{background:var(--bg-muted);}
+.prof-ctx-item i{width:16px;text-align:center;font-size:.85rem;}
+.prof-ctx-item.danger{color:var(--destructive);}
+.prof-ctx-item.danger:hover{background:rgba(239,68,68,.06);}
+.prof-ctx-sep{height:1px;background:var(--border);margin:4px 0;}
+.prof-ctx-title{padding:8px 16px 4px;font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;}
+
+/* ── Bloqueio badges no calendário ── */
+.prof-cal-block{font-size:.65rem;padding:3px 7px;border-radius:4px;background:rgba(239,68,68,.1);color:#991b1b;display:flex;align-items:center;gap:4px;margin-top:2px;cursor:default;}
+.prof-cal-block i{font-size:.6rem;}
+.prof-cal-cell.blocked{background:rgba(239,68,68,.04);}
+.prof-cal-cell.blocked-full{background:repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(239,68,68,.04) 8px,rgba(239,68,68,.04) 16px);}
+
+/* ── Modal bloqueio ── */
+.prof-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:700;align-items:center;justify-content:center;}
+.prof-modal-overlay.open{display:flex;}
+.prof-modal{background:#fff;border-radius:14px;width:400px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden;}
+.prof-modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);}
+.prof-modal-header h3{font-size:1rem;display:flex;align-items:center;gap:8px;}
+.prof-modal-header h3 i{color:var(--destructive);}
+.prof-modal-close{border:none;background:none;font-size:1.1rem;cursor:pointer;color:var(--text-secondary);padding:4px;}
+.prof-modal-body{padding:22px;}
+.prof-modal-body label{display:block;font-size:.82rem;font-weight:600;margin-bottom:6px;color:var(--text);}
+.prof-modal-body textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:.85rem;resize:vertical;min-height:80px;font-family:inherit;}
+.prof-modal-body textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(14,116,144,.1);}
+.prof-modal-body .modal-info{font-size:.78rem;color:var(--text-secondary);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.prof-modal-body .modal-info i{color:var(--primary);font-size:.7rem;}
+.prof-modal-footer{display:flex;gap:10px;justify-content:flex-end;padding:0 22px 18px;}
+.prof-modal-footer .btn{padding:9px 20px;font-size:.85rem;}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section" style="padding-top:32px;background:var(--bg-muted);min-height:calc(100vh - 68px);">
+    <div class="container" style="max-width:1100px;">
+
+        <!-- Topo -->
+        <div class="panel-top">
+            <div class="panel-top-left">
+                <img src="{{ prof.foto }}" alt="" class="panel-avatar">
+                <div>
+                    <h1 style="font-size:1.4rem;">Olá, {{ prof.nome.split()[0] }}!</h1>
+                    <p style="color:var(--text-secondary);font-size:.88rem;">{{ prof.cro }}</p>
+                </div>
+            </div>
+            <div class="panel-top-right">
+                <!-- Notificação balão -->
+                <div class="prof-notif-wrapper" id="notif-wrapper">
+                    <button class="notif-bell" id="notif-bell" type="button">
+                        <i class="fas fa-bell"></i>
+                        {% if nao_lidas > 0 %}<span class="notif-badge" id="notif-badge">{{ nao_lidas }}</span>{% endif %}
+                    </button>
+                    <div class="prof-notif-dropdown" id="notif-dropdown">
+                        <div class="prof-notif-header">
+                            <strong>Notificações</strong>
+                            <button id="notif-mark-read" class="prof-notif-mark">Marcar todas como lidas</button>
+                        </div>
+                        <div class="prof-notif-list" id="notif-list">
+                            <div class="prof-notif-empty">Carregando...</div>
+                        </div>
+                    </div>
+                </div>
+                <a href="{{ url_for('perfil_profissional') }}" class="btn btn-outline" style="padding:8px 14px;font-size:.85rem;">
+                    <i class="fas fa-cog"></i> Perfil
+                </a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline" style="padding:8px 14px;font-size:.85rem;color:var(--destructive);border-color:var(--destructive);">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}" style="margin-bottom:24px;"><i class="fas fa-info-circle"></i> {{ msg }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Abas -->
+        <div class="prof-tabs">
+            <button class="prof-tab active" data-tab="dashboard"><i class="fas fa-chart-line"></i> Dashboard</button>
+            <button class="prof-tab" data-tab="calendario"><i class="fas fa-calendar-alt"></i> Calendário</button>
+        </div>
+
+        <!-- ═══ ABA DASHBOARD ═══ -->
+        <div class="prof-tab-content active" id="tab-dashboard">
+
+            <!-- Stats -->
+            <div class="stat-row">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:rgba(14,116,144,.1);color:var(--primary);">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div>
+                        <div class="stat-num">{{ agendamentos_hoje|length }}</div>
+                        <div class="stat-label">Hoje</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:rgba(16,185,129,.1);color:var(--accent);">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div>
+                        <div class="stat-num">{{ total_mes }}</div>
+                        <div class="stat-label">Este mês</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:rgba(239,68,68,.1);color:var(--destructive);">
+                        <i class="fas fa-calendar-xmark"></i>
+                    </div>
+                    <div>
+                        <div class="stat-num">{{ cancelados_mes }}</div>
+                        <div class="stat-label">Cancelados</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:rgba(245,158,11,.1);color:var(--warning);">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div>
+                        <div class="stat-num">{{ nao_lidas }}</div>
+                        <div class="stat-label">Notificações</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agendamentos de hoje -->
+            <div class="panel-card" style="margin-bottom:24px;">
+                <div class="panel-card-header">
+                    <h2><i class="fas fa-calendar-day"></i> Agendamentos de Hoje</h2>
+                    <a href="{{ url_for('agenda_profissional') }}" class="btn btn-outline" style="padding:6px 14px;font-size:.82rem;">
+                        Ver agenda completa <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                {% if agendamentos_hoje %}
+                <div class="ag-list">
+                    {% for ag in agendamentos_hoje %}
+                    <div class="ag-item">
+                        <div class="ag-hora">{{ ag.hora }}</div>
+                        <div class="ag-info">
+                            <strong>{{ ag.paciente_nome }}</strong>
+                            <span>{{ ag.esp_nome }} • {{ ag.duracao }} min</span>
+                        </div>
+                        <div class="ag-badges">
+                            {% if ag.triagem_status == 'realizada' %}
+                            <button class="tag tag-accent" style="cursor:pointer;border:none;" onclick="verTriagem({{ ag.id }})" title="Ver triagem">
+                                <i class="fas fa-notes-medical"></i> Triagem
+                            </button>
+                            {% elif ag.triagem_status == 'pendente' and ag.status == 'confirmado' %}
+                            <span class="tag tag-warning"><i class="fas fa-hourglass-half"></i> Triagem pend.</span>
+                            {% endif %}
+                            {% if ag.pagamento_status == 'pendente' %}
+                            <span class="tag tag-warning">Pag. pendente</span>
+                            {% elif ag.pagamento_status == 'pago' %}
+                            <span class="tag tag-accent">Pago</span>
+                            {% endif %}
+                            <span class="tag tag-primary">{{ ag.status }}</span>
+                        </div>
+                        <form method="POST" action="{{ url_for('cancelar_agendamento', ag_id=ag.id) }}" style="margin-left:auto;">
+                            <button type="submit" class="btn-icon-danger" title="Cancelar" onclick="return confirm('Cancelar este agendamento?')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-coffee"></i>
+                    <p>Nenhum agendamento para hoje.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Próximos -->
+            <div class="panel-card">
+                <div class="panel-card-header">
+                    <h2><i class="fas fa-clock"></i> Próximos Agendamentos</h2>
+                </div>
+                {% if proximos %}
+                <div class="ag-list">
+                    {% for ag in proximos %}
+                    <div class="ag-item">
+                        <div class="ag-data">{{ ag.data[8:] }}/{{ ag.data[5:7] }}</div>
+                        <div class="ag-hora">{{ ag.hora }}</div>
+                        <div class="ag-info">
+                            <strong>{{ ag.paciente_nome }}</strong>
+                            <span>{{ ag.esp_nome }}</span>
+                        </div>
+                        <span class="tag tag-muted">{{ ag.status }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-calendar"></i>
+                    <p>Nenhum agendamento futuro.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ═══ ABA CALENDÁRIO ═══ -->
+        <div class="prof-tab-content" id="tab-calendario">
+            <div class="panel-card">
+                <div style="padding:22px;">
+                    <div class="cal-toolbar">
+                        <div class="cal-toolbar-left">
+                            <button class="cal-nav-btn" id="cal-prev"><i class="fas fa-chevron-left"></i></button>
+                            <div class="cal-month-label" id="cal-month-label"></div>
+                            <button class="cal-nav-btn" id="cal-next"><i class="fas fa-chevron-right"></i></button>
+                            <button class="cal-nav-btn" id="cal-today" style="font-size:.75rem;width:auto;padding:0 12px;font-weight:700;">HOJE</button>
+                        </div>
+                    </div>
+                    <div class="prof-cal-grid" id="cal-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Context menu -->
+        <div class="prof-ctx-menu" id="ctx-menu">
+            <div class="prof-ctx-title" id="ctx-date-label">01/04</div>
+            <button class="prof-ctx-item" id="ctx-block-manha"><i class="fas fa-sun"></i> Bloquear manhã</button>
+            <button class="prof-ctx-item" id="ctx-block-tarde"><i class="fas fa-moon"></i> Bloquear tarde</button>
+            <button class="prof-ctx-item danger" id="ctx-block-dia"><i class="fas fa-ban"></i> Bloquear dia inteiro</button>
+            <div class="prof-ctx-sep" id="ctx-sep-remove" style="display:none;"></div>
+            <div class="prof-ctx-title" id="ctx-remove-title" style="display:none;">Remover bloqueio</div>
+            <div id="ctx-remove-list"></div>
+        </div>
+
+        <!-- Modal justificativa -->
+        <div class="prof-modal-overlay" id="modal-bloqueio">
+            <div class="prof-modal">
+                <div class="prof-modal-header">
+                    <h3><i class="fas fa-lock"></i> Bloquear Horário</h3>
+                    <button class="prof-modal-close" id="modal-bloq-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="prof-modal-body">
+                    <div class="modal-info" id="modal-bloq-info"></div>
+                    <label for="bloq-justificativa">Justificativa <small style="font-weight:400;color:var(--text-secondary);">(visível apenas para admin/recepção)</small></label>
+                    <textarea id="bloq-justificativa" placeholder="Ex: Consulta médica pessoal, viagem, etc."></textarea>
+                </div>
+                <div class="prof-modal-footer">
+                    <button class="btn btn-outline" id="modal-bloq-cancel">Cancelar</button>
+                    <button class="btn btn-primary" id="modal-bloq-confirm" style="background:var(--destructive);"><i class="fas fa-lock"></i> Confirmar Bloqueio</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal triagem -->
+        <div class="prof-modal-overlay" id="modal-triagem">
+            <div class="prof-modal" style="max-width:560px;">
+                <div class="prof-modal-header" style="background:var(--primary);">
+                    <h3><i class="fas fa-notes-medical"></i> Dados da Triagem</h3>
+                    <button class="prof-modal-close" onclick="document.getElementById('modal-triagem').classList.remove('open')"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="prof-modal-body" id="triagem-body" style="max-height:60vh;overflow-y:auto;">
+                    <p style="text-align:center;color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Carregando...</p>
+                </div>
+                <div class="prof-modal-footer">
+                    <button class="btn btn-outline" onclick="document.getElementById('modal-triagem').classList.remove('open')">Fechar</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── ABAS ── */
+document.querySelectorAll('.prof-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.prof-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.prof-tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        if (tab.dataset.tab === 'calendario' && !calLoaded) { calInit(); }
+    });
+});
+
+/* ── CALENDÁRIO ── */
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DIAS_SEM = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+let curYear, curMonth, calLoaded = false;
+let agCache = {}, bloqCache = {};
+const grid = document.getElementById('cal-grid');
+const label = document.getElementById('cal-month-label');
+
+function calInit() {
+    const t = new Date();
+    curYear = t.getFullYear();
+    curMonth = t.getMonth();
+    loadMonth();
+    calLoaded = true;
+}
+
+document.getElementById('cal-prev').addEventListener('click', () => { curMonth--; if(curMonth<0){curMonth=11;curYear--;} loadMonth(); });
+document.getElementById('cal-next').addEventListener('click', () => { curMonth++; if(curMonth>11){curMonth=0;curYear++;} loadMonth(); });
+document.getElementById('cal-today').addEventListener('click', () => { const t=new Date(); curYear=t.getFullYear(); curMonth=t.getMonth(); loadMonth(); });
+
+async function loadMonth() {
+    label.textContent = `${MESES[curMonth]} ${curYear}`;
+    const key = `${curYear}-${String(curMonth+1).padStart(2,'0')}`;
+    try {
+        const resp = await fetch(`/api/profissional/calendario/${key}`);
+        const data = await resp.json();
+        agCache = data.por_dia || {};
+        bloqCache = data.bloqueios || {};
+    } catch(e) { agCache = {}; bloqCache = {}; }
+    renderGrid();
+}
+
+function renderGrid() {
+    grid.innerHTML = '';
+    DIAS_SEM.forEach(d => {
+        const h = document.createElement('div');
+        h.className = 'prof-cal-header';
+        h.textContent = d;
+        grid.appendChild(h);
+    });
+
+    const firstDay = new Date(curYear, curMonth, 1).getDay();
+    const daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
+    const daysInPrev = new Date(curYear, curMonth, 0).getDate();
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+    for (let i = firstDay - 1; i >= 0; i--) {
+        grid.appendChild(createCell(daysInPrev - i, true, ''));
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+        const ds = `${curYear}-${String(curMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        grid.appendChild(createCell(d, false, ds, ds === todayStr));
+    }
+    const total = firstDay + daysInMonth;
+    const rem = (7 - (total % 7)) % 7;
+    for (let i = 1; i <= rem; i++) {
+        grid.appendChild(createCell(i, true, ''));
+    }
+}
+
+function createCell(day, otherMonth, dateStr, isToday) {
+    const cell = document.createElement('div');
+    cell.className = 'prof-cal-cell' + (otherMonth ? ' other-month' : '') + (isToday ? ' today' : '');
+
+    const dayEl = document.createElement('div');
+    dayEl.className = 'prof-cal-day';
+    dayEl.textContent = day;
+    cell.appendChild(dayEl);
+
+    /* Bloqueios */
+    if (!otherMonth && dateStr && bloqCache[dateStr]) {
+        const bloqs = bloqCache[dateStr];
+        const hasFull = bloqs.some(b => b.periodo === 'dia_inteiro');
+        if (hasFull) cell.classList.add('blocked-full');
+        else cell.classList.add('blocked');
+
+        bloqs.forEach(b => {
+            const bEl = document.createElement('div');
+            bEl.className = 'prof-cal-block';
+            const lblMap = {manha: '☀ Manhã', tarde: '🌙 Tarde', dia_inteiro: '🚫 Dia inteiro'};
+            bEl.innerHTML = `<i class="fas fa-lock"></i> ${lblMap[b.periodo] || b.motivo}`;
+            cell.appendChild(bEl);
+        });
+    }
+
+    /* Agendamentos */
+    if (!otherMonth && dateStr && agCache[dateStr]) {
+        const ags = agCache[dateStr];
+        const items = document.createElement('div');
+        items.className = 'prof-cal-items';
+
+        const maxShow = 3;
+        ags.slice(0, maxShow).forEach(ag => {
+            const it = document.createElement('div');
+            it.className = 'prof-cal-item status-' + ag.status;
+            it.textContent = `${ag.hora.slice(0,5)} ${ag.paciente_nome.split(' ')[0]}`;
+            items.appendChild(it);
+        });
+        if (ags.length > maxShow) {
+            const more = document.createElement('div');
+            more.className = 'prof-cal-more';
+            more.textContent = `+${ags.length - maxShow} mais`;
+            items.appendChild(more);
+        }
+        cell.appendChild(items);
+
+        const tt = document.createElement('div');
+        tt.className = 'prof-cal-tooltip';
+        const ttH = document.createElement('div');
+        ttH.className = 'prof-cal-tooltip-title';
+        ttH.textContent = `${day}/${String(curMonth+1).padStart(2,'0')} — ${ags.length} agendamento${ags.length>1?'s':''}`;
+        tt.appendChild(ttH);
+
+        ags.forEach(ag => {
+            const row = document.createElement('div');
+            row.className = 'prof-cal-tooltip-item';
+            row.innerHTML = `
+                <div class="prof-cal-tooltip-hora">${ag.hora.slice(0,5)}</div>
+                <div class="prof-cal-tooltip-info">
+                    <strong>${escapeHtml(ag.paciente_nome)}</strong>
+                    <small>${escapeHtml(ag.esp_nome)}${ag.duracao ? ' — '+ag.duracao+' min' : ''}</small>
+                </div>
+                <span class="prof-cal-tooltip-status st-${ag.status}">${ag.status}</span>`;
+            tt.appendChild(row);
+        });
+        cell.appendChild(tt);
+    }
+
+    /* Context menu (right-click) - só em dias do mês atual */
+    if (!otherMonth && dateStr) {
+        cell.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            openCtxMenu(e.clientX, e.clientY, dateStr, day);
+        });
+    }
+
+    return cell;
+}
+
+/* ── CONTEXT MENU ── */
+const ctxMenu = document.getElementById('ctx-menu');
+let ctxDate = '';
+
+function openCtxMenu(x, y, dateStr, day) {
+    ctxDate = dateStr;
+    document.getElementById('ctx-date-label').textContent = `${day}/${String(curMonth+1).padStart(2,'0')}/${curYear}`;
+
+    /* Mostrar opções de remoção se já há bloqueios nesse dia */
+    const removeList = document.getElementById('ctx-remove-list');
+    const removeSep = document.getElementById('ctx-sep-remove');
+    const removeTitle = document.getElementById('ctx-remove-title');
+    removeList.innerHTML = '';
+
+    if (bloqCache[dateStr] && bloqCache[dateStr].length > 0) {
+        removeSep.style.display = '';
+        removeTitle.style.display = '';
+        bloqCache[dateStr].forEach(b => {
+            const btn = document.createElement('button');
+            btn.className = 'prof-ctx-item';
+            btn.style.color = 'var(--accent)';
+            const lblMap = {manha: 'manhã', tarde: 'tarde', dia_inteiro: 'dia inteiro'};
+            btn.innerHTML = `<i class="fas fa-unlock"></i> Desbloquear ${lblMap[b.periodo] || b.motivo}`;
+            btn.addEventListener('click', () => removeBloqueio(b.id));
+            removeList.appendChild(btn);
+        });
+    } else {
+        removeSep.style.display = 'none';
+        removeTitle.style.display = 'none';
+    }
+
+    /* Posicionar */
+    ctxMenu.classList.add('open');
+    const rect = ctxMenu.getBoundingClientRect();
+    const maxX = window.innerWidth - rect.width - 8;
+    const maxY = window.innerHeight - rect.height - 8;
+    ctxMenu.style.left = Math.min(x, maxX) + 'px';
+    ctxMenu.style.top = Math.min(y, maxY) + 'px';
+}
+
+document.addEventListener('click', () => ctxMenu.classList.remove('open'));
+document.addEventListener('contextmenu', (e) => {
+    if (!e.target.closest('.prof-cal-cell')) ctxMenu.classList.remove('open');
+});
+
+/* ── MODAL BLOQUEIO ── */
+const modalBloq = document.getElementById('modal-bloqueio');
+const modalBloqInfo = document.getElementById('modal-bloq-info');
+const bloqJustInput = document.getElementById('bloq-justificativa');
+let pendingPeriodo = '';
+
+function openBloqModal(periodo) {
+    ctxMenu.classList.remove('open');
+    pendingPeriodo = periodo;
+    const periodoLabel = {manha: 'manhã', tarde: 'tarde', dia_inteiro: 'dia inteiro'}[periodo];
+    const dayParts = ctxDate.split('-');
+    modalBloqInfo.innerHTML = `<i class="fas fa-info-circle"></i> Bloquear <strong>${periodoLabel}</strong> do dia <strong>${dayParts[2]}/${dayParts[1]}/${dayParts[0]}</strong>`;
+    bloqJustInput.value = '';
+    modalBloq.classList.add('open');
+}
+
+document.getElementById('ctx-block-manha').addEventListener('click', () => openBloqModal('manha'));
+document.getElementById('ctx-block-tarde').addEventListener('click', () => openBloqModal('tarde'));
+document.getElementById('ctx-block-dia').addEventListener('click', () => openBloqModal('dia_inteiro'));
+
+function closeBloqModal() { modalBloq.classList.remove('open'); }
+document.getElementById('modal-bloq-close').addEventListener('click', closeBloqModal);
+document.getElementById('modal-bloq-cancel').addEventListener('click', closeBloqModal);
+modalBloq.addEventListener('click', (e) => { if (e.target === modalBloq) closeBloqModal(); });
+
+document.getElementById('modal-bloq-confirm').addEventListener('click', async () => {
+    const just = bloqJustInput.value.trim();
+    try {
+        const resp = await fetch('/api/profissional/bloqueio', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({data: ctxDate, periodo: pendingPeriodo, justificativa: just})
+        });
+        const data = await resp.json();
+        if (data.success) {
+            closeBloqModal();
+            await loadMonth();
+        } else {
+            alert(data.error || 'Erro ao bloquear');
+        }
+    } catch(e) { alert('Erro de conexão'); }
+});
+
+async function removeBloqueio(bloqId) {
+    ctxMenu.classList.remove('open');
+    if (!confirm('Remover este bloqueio?')) return;
+    try {
+        await fetch(`/api/profissional/bloqueio/${bloqId}`, {method: 'DELETE'});
+        await loadMonth();
+    } catch(e) { alert('Erro ao remover'); }
+}
+
+/* ── NOTIFICAÇÕES ── */
+const bell = document.getElementById('notif-bell');
+const dropdown = document.getElementById('notif-dropdown');
+const notifList = document.getElementById('notif-list');
+const badge = document.getElementById('notif-badge');
+let notifOpen = false;
+
+bell.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    notifOpen = !notifOpen;
+    if (notifOpen) {
+        dropdown.classList.add('open');
+        await loadNotifs();
+    } else {
+        dropdown.classList.remove('open');
+    }
+});
+
+document.addEventListener('click', (e) => {
+    if (!document.getElementById('notif-wrapper').contains(e.target)) {
+        dropdown.classList.remove('open');
+        notifOpen = false;
+    }
+});
+
+async function loadNotifs() {
+    try {
+        const resp = await fetch('/api/notificacoes');
+        const data = await resp.json();
+        if (!data.notificacoes || data.notificacoes.length === 0) {
+            notifList.innerHTML = '<div class="prof-notif-empty"><i class="fas fa-bell-slash" style="font-size:1.4rem;margin-bottom:8px;display:block;opacity:.4;"></i>Nenhuma notificação</div>';
+            return;
+        }
+        notifList.innerHTML = '';
+        data.notificacoes.forEach(n => {
+            const item = document.createElement('div');
+            item.className = 'prof-notif-item' + (n.lida ? '' : ' unread');
+            const timeAgo = formatTimeAgo(n.criado_em);
+            item.innerHTML = `
+                <div class="prof-notif-item-title"><i class="fas fa-${n.tipo === 'push' ? 'paper-plane' : 'bell'}" style="margin-right:6px;opacity:.5;font-size:.75rem;"></i>${escapeHtml(n.titulo)}</div>
+                <div class="prof-notif-item-msg">${escapeHtml(n.mensagem)}</div>
+                <div class="prof-notif-item-time">${timeAgo}</div>`;
+            notifList.appendChild(item);
+        });
+    } catch(e) {
+        notifList.innerHTML = '<div class="prof-notif-empty">Erro ao carregar</div>';
+    }
+}
+
+document.getElementById('notif-mark-read').addEventListener('click', async () => {
+    await fetch('/api/notificacoes/ler', {method: 'POST'});
+    if (badge) badge.remove();
+    document.querySelectorAll('.prof-notif-item.unread').forEach(el => el.classList.remove('unread'));
+});
+
+function formatTimeAgo(dateStr) {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diff = Math.floor((now - d) / 1000);
+    if (diff < 60) return 'agora';
+    if (diff < 3600) return Math.floor(diff/60) + ' min atrás';
+    if (diff < 86400) return Math.floor(diff/3600) + 'h atrás';
+    return Math.floor(diff/86400) + 'd atrás';
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+/* ── VER TRIAGEM ── */
+async function verTriagem(agId) {
+    const modal = document.getElementById('modal-triagem');
+    const body = document.getElementById('triagem-body');
+    body.innerHTML = '<p style="text-align:center;color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Carregando...</p>';
+    modal.classList.add('open');
+    try {
+        const resp = await fetch('/api/profissional/triagem/' + agId);
+        if (!resp.ok) { body.innerHTML = '<p style="text-align:center;color:var(--destructive);">Triagem não encontrada.</p>'; return; }
+        const t = await resp.json();
+        let html = '<div style="display:grid;gap:16px;">';
+
+        /* Enfermeira + data */
+        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg-secondary);border-radius:8px;font-size:.85rem;">
+            <span><i class="fas fa-user-nurse" style="margin-right:6px;color:var(--primary);"></i><strong>Enfermeira:</strong> ${escapeHtml(t.enfermeira_nome || '—')}</span>
+            <span style="color:var(--text-secondary);">${t.criado_em ? new Date(t.criado_em).toLocaleString('pt-BR') : ''}</span>
+        </div>`;
+
+        /* Sinais vitais */
+        if (t.pressao_arterial || t.temperatura || t.peso || t.altura) {
+            html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;">';
+            if (t.pressao_arterial) html += `<div style="background:var(--bg-secondary);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:.7rem;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">Pressão</div><strong style="font-size:1.1rem;">${escapeHtml(t.pressao_arterial)}</strong></div>`;
+            if (t.temperatura) html += `<div style="background:var(--bg-secondary);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:.7rem;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">Temp.</div><strong style="font-size:1.1rem;">${escapeHtml(t.temperatura)}°C</strong></div>`;
+            if (t.peso) html += `<div style="background:var(--bg-secondary);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:.7rem;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">Peso</div><strong style="font-size:1.1rem;">${escapeHtml(t.peso)} kg</strong></div>`;
+            if (t.altura) html += `<div style="background:var(--bg-secondary);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:.7rem;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">Altura</div><strong style="font-size:1.1rem;">${escapeHtml(t.altura)} cm</strong></div>`;
+            html += '</div>';
+        }
+
+        /* Queixa */
+        if (t.queixa) html += `<div><label style="font-weight:600;font-size:.8rem;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">Queixa principal</label><div style="background:var(--bg-secondary);padding:10px 14px;border-radius:8px;border-left:3px solid var(--accent);">${escapeHtml(t.queixa)}</div></div>`;
+
+        /* Sintomas */
+        if (t.sintomas) html += `<div><label style="font-weight:600;font-size:.8rem;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">Sintomas</label><div style="background:var(--bg-secondary);padding:10px 14px;border-radius:8px;">${escapeHtml(t.sintomas)}</div></div>`;
+
+        /* Doenças */
+        if (t.doencas) html += `<div><label style="font-weight:600;font-size:.8rem;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">Doenças pré-existentes</label><div style="background:var(--bg-secondary);padding:10px 14px;border-radius:8px;">${escapeHtml(t.doencas)}</div></div>`;
+
+        /* Observações */
+        if (t.observacoes) html += `<div><label style="font-weight:600;font-size:.8rem;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">Observações</label><div style="background:var(--bg-secondary);padding:10px 14px;border-radius:8px;">${escapeHtml(t.observacoes)}</div></div>`;
+
+        /* Exames anexos */
+        if (t.exames_anexos && t.exames_anexos.length > 0) {
+            html += '<div><label style="font-weight:600;font-size:.8rem;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">Exames / Anexos</label><div style="display:flex;flex-wrap:wrap;gap:8px;">';
+            t.exames_anexos.forEach((f, i) => {
+                const fname = f.split('/').pop();
+                html += `<a href="/${escapeHtml(f)}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg-secondary);border-radius:6px;text-decoration:none;color:var(--primary);font-size:.85rem;border:1px solid var(--border);"><i class="fas fa-file-pdf"></i>${escapeHtml(fname)}</a>`;
+            });
+            html += '</div></div>';
+        }
+
+        html += '</div>';
+        body.innerHTML = html;
+    } catch(e) {
+        body.innerHTML = '<p style="text-align:center;color:var(--destructive);">Erro ao carregar triagem.</p>';
+    }
+}
+</script>
+{% endblock %}

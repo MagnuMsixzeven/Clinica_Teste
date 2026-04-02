@@ -1,0 +1,360 @@
+{% extends "base_admin.html" %}
+{% block title %}Calendário{% endblock %}
+{% block page_title %}Calendário{% endblock %}
+
+{% block content %}
+
+<div class="adm-card">
+    <div class="adm-card-header">
+        <h2><i class="fas fa-calendar-alt"></i> Agenda Mensal</h2>
+        <button class="adm-btn primary" onclick="openDiasEspeciais()" style="font-size:.82rem;">
+            <i class="fas fa-calendar-xmark"></i> Gerenciar Dias Especiais
+        </button>
+    </div>
+    <div style="padding:22px;">
+
+        <!-- Toolbar -->
+        <div class="cal-toolbar">
+            <div class="cal-toolbar-left">
+                <button class="cal-nav-btn" id="cal-prev"><i class="fas fa-chevron-left"></i></button>
+                <div class="cal-month-label" id="cal-month-label"></div>
+                <button class="cal-nav-btn" id="cal-next"><i class="fas fa-chevron-right"></i></button>
+                <button class="cal-nav-btn" id="cal-today" title="Hoje" style="font-size:.75rem;width:auto;padding:0 12px;font-weight:700;">HOJE</button>
+            </div>
+            <div class="cal-filter">
+                <label for="cal-prof-filter"><i class="fas fa-user-doctor"></i> Médico:</label>
+                <select id="cal-prof-filter">
+                    <option value="">Todos</option>
+                    {% for p in profissionais %}
+                    <option value="{{ p.id }}">Dr(a). {{ p.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Calendar grid (JS rendered) -->
+        <div class="cal-grid" id="cal-grid"></div>
+
+    </div>
+</div>
+
+<!-- Modal Remarcar -->
+<div class="adm-modal-overlay" id="modal-remarcar" style="display:none;">
+    <div class="adm-modal">
+        <div class="adm-modal-header">
+            <h3><i class="fas fa-calendar-pen"></i> Remarcar Agendamento</h3>
+            <button class="adm-modal-close" onclick="closeRemarcar()"><i class="fas fa-times"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('admin_remarcar') }}" class="adm-modal-body">
+            <input type="hidden" name="ag_id" id="rem-ag-id">
+            <input type="hidden" name="redirect" value="calendario">
+            <div class="adm-form-row">
+                <div class="adm-form-group">
+                    <label>Nova Data</label>
+                    <input type="date" name="nova_data" id="rem-data" required>
+                </div>
+                <div class="adm-form-group">
+                    <label>Novo Horário</label>
+                    <input type="time" name="nova_hora" id="rem-hora" required>
+                </div>
+            </div>
+            <button type="submit" class="adm-btn primary"><i class="fas fa-check"></i> Confirmar Remarcação</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Dias Especiais -->
+<div class="adm-modal-overlay" id="modal-dias-esp" style="display:none;" onclick="if(event.target===this)closeDiasEspeciais()">
+    <div class="adm-modal" style="max-width:600px;">
+        <div class="adm-modal-header">
+            <h3><i class="fas fa-calendar-xmark"></i> Dias Especiais</h3>
+            <button class="adm-modal-close" onclick="closeDiasEspeciais()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="adm-modal-body">
+            <!-- Form adicionar -->
+            <div style="background:var(--adm-bg);border-radius:10px;padding:16px;margin-bottom:20px;">
+                <h4 style="font-size:.84rem;font-weight:700;margin-bottom:12px;color:var(--adm-primary);"><i class="fas fa-plus-circle" style="margin-right:6px;"></i>Adicionar Dia Especial</h4>
+                <div class="adm-form-row">
+                    <div class="adm-form-group">
+                        <label>Data</label>
+                        <input type="date" id="de_data" required>
+                    </div>
+                    <div class="adm-form-group">
+                        <label>Tipo</label>
+                        <select id="de_tipo">
+                            <option value="feriado">🏖️ Feriado</option>
+                            <option value="folga">😴 Folga</option>
+                            <option value="fechado">🔒 Dia Fechado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="adm-form-group" style="margin-bottom:10px;">
+                    <label>Descrição</label>
+                    <input type="text" id="de_descricao" placeholder="Ex: Natal, Confraternização..." style="width:100%;">
+                </div>
+                <button class="adm-btn primary" onclick="adicionarDiaEspecial()" style="width:100%;justify-content:center;">
+                    <i class="fas fa-plus"></i> Adicionar
+                </button>
+            </div>
+
+            <!-- Lista -->
+            <div>
+                <h4 style="font-size:.84rem;font-weight:700;margin-bottom:10px;"><i class="fas fa-list" style="margin-right:6px;color:var(--adm-primary);"></i>Dias Cadastrados</h4>
+                <div id="de-lista" style="max-height:300px;overflow-y:auto;">
+                    <p style="text-align:center;color:var(--adm-text-sec);font-size:.86rem;padding:20px;">Carregando...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DIAS_SEM = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+let curYear, curMonth;
+let agendamentosCache = {};
+let diasEspeciaisCache = {};
+
+const grid = document.getElementById('cal-grid');
+const label = document.getElementById('cal-month-label');
+const profFilter = document.getElementById('cal-prof-filter');
+
+function init() {
+    const today = new Date();
+    curYear = today.getFullYear();
+    curMonth = today.getMonth();
+    loadMonth();
+}
+
+document.getElementById('cal-prev').addEventListener('click', () => { curMonth--; if(curMonth<0){curMonth=11;curYear--;} loadMonth(); });
+document.getElementById('cal-next').addEventListener('click', () => { curMonth++; if(curMonth>11){curMonth=0;curYear++;} loadMonth(); });
+document.getElementById('cal-today').addEventListener('click', () => { const t=new Date(); curYear=t.getFullYear(); curMonth=t.getMonth(); loadMonth(); });
+profFilter.addEventListener('change', () => loadMonth());
+
+async function loadMonth() {
+    label.textContent = `${MESES[curMonth]} ${curYear}`;
+    const profId = profFilter.value;
+    const key = `${curYear}-${String(curMonth+1).padStart(2,'0')}`;
+    let url = `/api/admin/calendario/${key}`;
+    if (profId) url += `?prof_id=${profId}`;
+
+    try {
+        const resp = await fetch(url);
+        const data = await resp.json();
+        agendamentosCache = data.por_dia || {};
+        // Index dias especiais by date
+        diasEspeciaisCache = {};
+        (data.dias_especiais || []).forEach(d => { diasEspeciaisCache[d.data] = d; });
+    } catch(e) {
+        agendamentosCache = {};
+        diasEspeciaisCache = {};
+    }
+    renderGrid();
+}
+
+function renderGrid() {
+    grid.innerHTML = '';
+
+    // Header
+    DIAS_SEM.forEach(d => {
+        const h = document.createElement('div');
+        h.className = 'cal-header-cell';
+        h.textContent = d;
+        grid.appendChild(h);
+    });
+
+    const firstDay = new Date(curYear, curMonth, 1).getDay();
+    const daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
+    const daysInPrev = new Date(curYear, curMonth, 0).getDate();
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+    // Previous month fill
+    for (let i = firstDay - 1; i >= 0; i--) {
+        const day = daysInPrev - i;
+        const cell = createCell(day, true, '');
+        grid.appendChild(cell);
+    }
+
+    // Current month
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${curYear}-${String(curMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const isToday = dateStr === todayStr;
+        const cell = createCell(d, false, dateStr, isToday);
+        grid.appendChild(cell);
+    }
+
+    // Next month fill
+    const totalCells = firstDay + daysInMonth;
+    const remaining = (7 - (totalCells % 7)) % 7;
+    for (let i = 1; i <= remaining; i++) {
+        const cell = createCell(i, true, '');
+        grid.appendChild(cell);
+    }
+}
+
+function createCell(day, otherMonth, dateStr, isToday) {
+    const cell = document.createElement('div');
+    const diaEsp = !otherMonth && dateStr ? diasEspeciaisCache[dateStr] : null;
+    cell.className = 'cal-cell' + (otherMonth ? ' other-month' : '') + (isToday ? ' today' : '') + (diaEsp ? ' dia-especial' : '');
+
+    const dayEl = document.createElement('div');
+    dayEl.className = 'cal-day';
+    dayEl.textContent = day;
+    cell.appendChild(dayEl);
+
+    if (diaEsp) {
+        const tipoIcons = {feriado: '🏖️', folga: '😴', fechado: '🔒'};
+        const badge = document.createElement('div');
+        badge.className = 'cal-dia-esp-badge';
+        badge.innerHTML = `${tipoIcons[diaEsp.tipo] || '📌'} ${diaEsp.descricao}`;
+        cell.appendChild(badge);
+    }
+
+    if (!otherMonth && dateStr && agendamentosCache[dateStr]) {
+        const ags = agendamentosCache[dateStr];
+        const dots = document.createElement('div');
+        dots.className = 'cal-dots';
+
+        const maxShow = 3;
+        ags.slice(0, maxShow).forEach(ag => {
+            const dot = document.createElement('div');
+            dot.className = 'cal-dot-item ' + (ag.status === 'confirmado' ? 'conf' : ag.status === 'pendente' ? 'pend' : 'canc');
+            dot.textContent = `${ag.hora} ${ag.paciente_nome.split(' ')[0]}`;
+            dots.appendChild(dot);
+        });
+
+        if (ags.length > maxShow) {
+            const more = document.createElement('div');
+            more.className = 'cal-more';
+            more.textContent = `+${ags.length - maxShow} mais`;
+            dots.appendChild(more);
+        }
+        cell.appendChild(dots);
+
+        // Tooltip
+        const tooltip = document.createElement('div');
+        tooltip.className = 'cal-tooltip';
+        const ttTitle = document.createElement('div');
+        ttTitle.className = 'cal-tooltip-title';
+        ttTitle.textContent = `${day}/${String(curMonth+1).padStart(2,'0')} — ${ags.length} agendamento${ags.length > 1 ? 's' : ''}`;
+        tooltip.appendChild(ttTitle);
+
+        ags.forEach(ag => {
+            const item = document.createElement('div');
+            item.className = 'cal-tooltip-item';
+            item.innerHTML = `
+                <div class="cal-tooltip-hora">${ag.hora}</div>
+                <div class="cal-tooltip-info">
+                    <strong>${ag.paciente_nome}</strong>
+                    <small>${ag.esp_nome} — Dr(a). ${ag.prof_nome}</small>
+                </div>
+                <div class="adm-actions">
+                    ${ag.status !== 'cancelado' ? `
+                    <button class="adm-btn-icon primary" title="Remarcar" onclick="openRemarcar(${ag.id},'${ag.data}','${ag.hora}','${ag.prof_id}')"><i class="fas fa-calendar-pen"></i></button>
+                    <form method="POST" action="/admin/agendamento/${ag.id}/cancelar" style="display:inline;">
+                        <input type="hidden" name="redirect" value="calendario">
+                        <button class="adm-btn-icon danger" title="Cancelar" onclick="return confirm('Cancelar?')"><i class="fas fa-times"></i></button>
+                    </form>
+                    ` : '<span class="adm-badge bg-danger" style="font-size:.65rem;">Cancelado</span>'}
+                </div>`;
+            tooltip.appendChild(item);
+        });
+
+        cell.appendChild(tooltip);
+    }
+
+    return cell;
+}
+
+function openRemarcar(id, data, hora) {
+    document.getElementById('rem-ag-id').value = id;
+    document.getElementById('rem-data').value = data;
+    document.getElementById('rem-hora').value = hora;
+    document.getElementById('modal-remarcar').style.display = 'flex';
+}
+function closeRemarcar() { document.getElementById('modal-remarcar').style.display = 'none'; }
+document.getElementById('modal-remarcar').addEventListener('click', function(e) { if(e.target===this) closeRemarcar(); });
+
+/* ── Dias Especiais Modal ──────────────────────────────────── */
+function openDiasEspeciais() {
+    document.getElementById('modal-dias-esp').style.display = 'flex';
+    carregarListaDiasEspeciais();
+}
+function closeDiasEspeciais() { document.getElementById('modal-dias-esp').style.display = 'none'; }
+
+async function carregarListaDiasEspeciais() {
+    const key = `${curYear}-${String(curMonth+1).padStart(2,'0')}`;
+    try {
+        const resp = await fetch(`/api/admin/calendario/${key}`);
+        const data = await resp.json();
+        const lista = data.dias_especiais || [];
+        renderListaDiasEspeciais(lista);
+    } catch(e) {
+        document.getElementById('de-lista').innerHTML = '<p style="color:var(--adm-danger);">Erro ao carregar</p>';
+    }
+}
+
+function renderListaDiasEspeciais(lista) {
+    const wrap = document.getElementById('de-lista');
+    if (!lista.length) {
+        wrap.innerHTML = '<p style="text-align:center;color:var(--adm-text-sec);font-size:.86rem;padding:20px;">Nenhum dia especial cadastrado neste mês.</p>';
+        return;
+    }
+    const tipoLabels = {feriado:'Feriado', folga:'Folga', fechado:'Dia Fechado'};
+    const tipoColors = {feriado:'bg-warn', folga:'bg-info', fechado:'bg-danger'};
+    const tipoIcons = {feriado:'🏖️', folga:'😴', fechado:'🔒'};
+    wrap.innerHTML = lista.map(d => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--adm-bg);border-radius:8px;margin-bottom:6px;">
+            <div style="font-size:1.2rem;">${tipoIcons[d.tipo] || '📌'}</div>
+            <div style="flex:1;">
+                <strong style="font-size:.86rem;">${d.descricao}</strong>
+                <div style="font-size:.78rem;color:var(--adm-text-sec);margin-top:2px;">
+                    ${d.data.split('-').reverse().join('/')}
+                    <span class="adm-badge ${tipoColors[d.tipo] || 'bg-muted'}" style="font-size:.68rem;margin-left:6px;">${tipoLabels[d.tipo] || d.tipo}</span>
+                </div>
+            </div>
+            <button class="adm-btn-icon danger" title="Remover" onclick="removerDiaEspecial(${d.id})"><i class="fas fa-trash"></i></button>
+        </div>
+    `).join('');
+}
+
+async function adicionarDiaEspecial() {
+    const data = document.getElementById('de_data').value;
+    const tipo = document.getElementById('de_tipo').value;
+    const descricao = document.getElementById('de_descricao').value.trim();
+    if (!data || !descricao) { alert('Preencha data e descrição.'); return; }
+    try {
+        const resp = await fetch('/admin/dia-especial', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({data, tipo, descricao})
+        });
+        const res = await resp.json();
+        if (res.ok) {
+            document.getElementById('de_data').value = '';
+            document.getElementById('de_descricao').value = '';
+            carregarListaDiasEspeciais();
+            loadMonth();
+        } else {
+            alert(res.error || 'Erro ao adicionar');
+        }
+    } catch(e) { alert('Erro de conexão'); }
+}
+
+async function removerDiaEspecial(id) {
+    if (!confirm('Remover este dia especial?')) return;
+    try {
+        await fetch(`/admin/dia-especial/${id}`, {method: 'DELETE'});
+        carregarListaDiasEspeciais();
+        loadMonth();
+    } catch(e) { alert('Erro ao remover'); }
+}
+
+init();
+</script>
+{% endblock %}
