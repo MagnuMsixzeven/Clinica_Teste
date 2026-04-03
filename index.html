@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASTIR – Tombamento de Equipamentos</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       TELA DE LOGIN
+       ════════════════════════════════════════════════════════════════════ -->
+  <div id="tela-login" class="login-screen">
+    <!-- Lado esquerdo: formulário -->
+    <div class="login-left">
+      <div class="login-left-content">
+        <div class="login-badge">
+          <i class="fas fa-barcode"></i> Controle Patrimonial
+        </div>
+        <h1 class="login-title">Sistema de<br><span>Tombamento</span></h1>
+        <p class="login-desc">Gerenciamento do patrimônio eletronico da ASTIR!</p>
+
+        <form id="form-login">
+          <div class="form-group">
+            <label for="login-setor"><i class="fas fa-building"></i> Setor</label>
+            <select id="login-setor" required>
+              <option value="">Selecione o setor...</option>
+              <option value="TI">TI</option>
+              <option value="Guias">Guias</option>
+              <option value="DIREX" >DIREX</option>
+              <option value="Faturamento">Faturamento</option>
+              <option value="Cadastro">Cadastro</option>
+              <option value="Ambulatório">Ambulatório</option>
+              <option value="Financeiro">Financeiro</option>
+              <option value="Compras">Compras</option>
+              <option value="Jurídico">Jurídico</option>
+              <option value="RH">RH</option>
+              <option value="Almoxarifado">Almoxarifado</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="login-senha"><i class="fas fa-lock"></i> Senha</label>
+            <input type="password" id="login-senha" placeholder="Digite a senha do setor" required>
+          </div>
+          <button type="submit" class="btn-login-entrar">
+            <span>Entrar</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+          <p class="login-error" id="login-error"></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Lado direito: logo + decoração -->
+    <div class="login-right">
+
+      <div class="login-right-content">
+        <img src="img/logo-astir.jpg" alt="ASTIR" class="login-right-logo" onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex';">
+        <div id="logo-fallback" class="logo-fallback" style="display:none;">
+          <i class="fas fa-shield-halved"></i>
+          <span>ASTIR</span>
+        </div>
+        <h2 class="login-right-title">ASTIR</h2>
+        <p class="login-right-sub">Associação Tiradentes dos Policiais<br>e Bombeiros Militares do Estado de Rondônia</p>
+        <div class="login-right-features">
+          <div class="feature-item"><i class="fas fa-check-circle"></i> Tombamento automático</div>
+          <div class="feature-item"><i class="fas fa-check-circle"></i> Controle por setor</div>
+          <div class="feature-item"><i class="fas fa-check-circle"></i> Exportação em Excel</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       APP PRINCIPAL (escondido até login)
+       ════════════════════════════════════════════════════════════════════ -->
+  <div id="app-principal" class="app-wrapper" style="display:none;">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <img src="img/logo-astir.jpg" alt="ASTIR" class="sidebar-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+          <i class="fas fa-barcode" style="display:none;"></i>
+          <span>Tombamento</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-section="dashboard">
+          <i class="fas fa-chart-pie"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" data-section="listagem">
+          <i class="fas fa-list"></i>
+          <span>Equipamentos</span>
+        </a>
+      </nav>
+      <div class="sidebar-user">
+        <div class="user-info">
+          <i class="fas fa-user-circle"></i>
+          <span id="user-setor">Setor</span>
+        </div>
+        <button class="btn-logout" id="btn-logout" title="Sair">
+          <i class="fas fa-sign-out-alt"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-content">
+
+      <!-- ─── DASHBOARD ──────────────────────────────────────────── -->
+      <section id="section-dashboard" class="section active">
+        <div class="section-header">
+          <h1><i class="fas fa-chart-pie"></i> Dashboard</h1>
+          <p class="subtitle">Visão geral dos equipamentos tombados</p>
+        </div>
+
+        <div class="cards-grid">
+          <div class="stat-card">
+            <div class="stat-icon total"><i class="fas fa-boxes-stacked"></i></div>
+            <div class="stat-info">
+              <span class="stat-number" id="stat-total">0</span>
+              <span class="stat-label">Total Cadastrados</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon ativos"><i class="fas fa-check-circle"></i></div>
+            <div class="stat-info">
+              <span class="stat-number" id="stat-ativos">0</span>
+              <span class="stat-label">Ativos</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon baixa"><i class="fas fa-arrow-down"></i></div>
+            <div class="stat-info">
+              <span class="stat-number" id="stat-baixa">0</span>
+              <span class="stat-label">Em Baixa</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon proximo"><i class="fas fa-hashtag"></i></div>
+            <div class="stat-info">
+              <span class="stat-number" id="stat-proximo">—</span>
+              <span class="stat-label">Próx. Tombamento</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3><i class="fas fa-chart-bar"></i> Equipamentos por Tipo</h3>
+          <div id="chart-produtos" class="chart-container"></div>
+        </div>
+
+        <!-- Relatório por setor (só TI) -->
+        <div class="card" id="card-setores" style="margin-top:20px; display:none;">
+          <h3><i class="fas fa-building"></i> Tombamentos por Setor</h3>
+          <div id="grid-setores" class="setores-grid"></div>
+        </div>
+      </section>
+
+      <!-- ─── LISTAGEM ───────────────────────────────────────────── -->
+      <section id="section-listagem" class="section">
+        <div class="section-header">
+          <div class="section-header-row">
+            <div>
+              <h1><i class="fas fa-list"></i> Equipamentos Tombados</h1>
+              <p class="subtitle">Gerencie todos os equipamentos cadastrados</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn-excel" id="btn-exportar">
+                <i class="fas fa-file-excel"></i> Exportar Excel
+              </button>
+              <button class="btn-primary" id="btn-adicionar">
+                <i class="fas fa-plus"></i> Adicionar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="filtros-bar">
+            <div class="filtro-group">
+              <input type="text" id="filtro-busca" placeholder="Buscar por marca, série ou nº tombamento..." class="filtro-input">
+            </div>
+            <div class="filtro-group">
+              <select id="filtro-produto" class="filtro-select">
+                <option value="Todos">Todos os Produtos</option>
+                <option value="Monitor">Monitor</option>
+                <option value="Nobreak">Nobreak</option>
+                <option value="CPU">CPU</option>
+                <option value="DVR">DVR</option>
+                <option value="Switch">Switch</option>
+                <option value="Microfone">Microfone</option>
+                <option value="Câmera">Câmera</option>
+                <option value="Rack">Rack</option>
+              </select>
+            </div>
+            <div class="filtro-group">
+              <select id="filtro-status" class="filtro-select">
+                <option value="Todos">Todos os Status</option>
+                <option value="Ativo">Ativo</option>
+                <option value="Em Baixa">Em Baixa</option>
+              </select>
+            </div>
+            <div class="filtro-group">
+              <select id="filtro-setor" class="filtro-select">
+                <option value="Todos">Todos os Setores</option>
+                <option value="TI">TI</option>
+                <option value="Guias">Guias</option>
+                <option value="DIREX">DIREX</option>
+                <option value="Faturamento">Faturamento</option>
+                <option value="Cadastro">Cadastro</option>
+                <option value="Ambulatório">Ambulatório</option>
+                <option value="Financeiro">Financeiro</option>
+                <option value="Compras">Compras</option>
+                <option value="Jurídico">Jurídico</option>
+                <option value="RH">RH</option>
+                <option value="Almoxarifado">Almoxarifado</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Resumo do setor filtrado -->
+          <div id="resumo-setor" class="resumo-setor" style="display:none;"></div>
+
+          <div class="tabela-container">
+            <table class="tabela">
+              <thead>
+                <tr>
+                  <th>Tombamento</th>
+                  <th>Produto</th>
+                  <th>Marca</th>
+                  <th>Nº Série</th>
+                  <th>Status</th>
+                  <th>Setor</th>
+                  <th>Data Cadastro</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-body"></tbody>
+            </table>
+            <div class="empty-state" id="empty-state" style="display:none;">
+              <i class="fas fa-inbox"></i>
+              <p>Nenhum equipamento encontrado.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       MODAL – Adicionar Tombamento
+       ════════════════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-cadastro">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <i class="fas fa-plus-circle" style="color: var(--azul-500);"></i>
+          <h3>Novo Tombamento</h3>
+        </div>
+        <button class="btn-close-modal" id="btn-fechar-cadastro">&times;</button>
+      </div>
+      <form id="form-cadastro">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="produto"><i class="fas fa-desktop"></i> Produto</label>
+            <select id="produto" required>
+              <option value="">Selecione o produto...</option>
+              <option value="Monitor">Monitor</option>
+              <option value="Nobreak">Nobreak</option>
+              <option value="CPU">CPU</option>
+              <option value="DVR">DVR</option>
+              <option value="Switch">Switch</option>
+              <option value="Microfone">Microfone</option>
+              <option value="Câmera">Câmera</option>
+              <option value="Rack">Rack</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="marca"><i class="fas fa-tag"></i> Marca</label>
+            <input type="text" id="marca" placeholder="Ex: Samsung, LG, TP-Link..." required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="numero_serie"><i class="fas fa-fingerprint"></i> Número de Série</label>
+            <input type="text" id="numero_serie" placeholder="Número de série do equipamento" required>
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-hashtag"></i> Tombamento (Automático)</label>
+            <div class="tombamento-preview" id="tombamento-preview">
+              <span class="tombamento-numero">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="btn-cancelar-cadastro">Cancelar</button>
+          <button type="submit" class="btn-primary">
+            <i class="fas fa-save"></i> Cadastrar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de confirmação (excluir) -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <i class="fas fa-exclamation-triangle" style="color: var(--amarelo);"></i>
+          <h3 id="modal-titulo">Confirmar Ação</h3>
+        </div>
+        <span></span>
+      </div>
+      <p id="modal-msg">Tem certeza que deseja realizar esta ação?</p>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="modal-cancelar">Cancelar</button>
+        <button class="btn-danger" id="modal-confirmar">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       MODAL – Transferir Equipamento
+       ════════════════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-transferir">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <i class="fas fa-share" style="color: var(--azul-500);"></i>
+          <h3>Transferir Equipamento</h3>
+        </div>
+        <button class="btn-close-modal" id="btn-fechar-transferir">&times;</button>
+      </div>
+      <div class="transferir-info" id="transferir-info"></div>
+      <div class="form-group" style="margin-top:16px;">
+        <label for="transferir-destino"><i class="fas fa-building"></i> Enviar para o setor</label>
+        <select id="transferir-destino" required>
+          <option value="">Selecione o destino...</option>
+          <option value="TI">TI</option>
+          <option value="Guias">Guias</option>
+          <option value="DIREX">DIREX</option>
+          <option value="Faturamento">Faturamento</option>
+          <option value="Cadastro">Cadastro</option>
+          <option value="Ambulatório">Ambulatório</option>
+          <option value="Financeiro">Financeiro</option>
+          <option value="Compras">Compras</option>
+          <option value="Jurídico">Jurídico</option>
+          <option value="RH">RH</option>
+          <option value="Almoxarifado">Almoxarifado</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="btn-cancelar-transferir">Cancelar</button>
+        <button class="btn-primary" id="btn-confirmar-transferir">
+          <i class="fas fa-paper-plane"></i> Transferir
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       MODAL – Histórico de Transferências
+       ════════════════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-historico">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <i class="fas fa-history" style="color: var(--azul-500);"></i>
+          <h3>Histórico de Movimentações</h3>
+        </div>
+        <button class="btn-close-modal" id="btn-fechar-historico">&times;</button>
+      </div>
+      <div id="historico-body" class="historico-lista"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast-sucesso">
+    <i class="fas fa-check-circle"></i>
+    <span id="toast-msg">Sucesso!</span>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
