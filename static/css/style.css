@@ -398,7 +398,8 @@ ul, ol { list-style: none; }
     transition: background var(--transition), color var(--transition);
 }
 .step-circle.current { background: var(--primary); color: #fff; }
-.step-circle.completed { background: var(--accent); color: #fff; }
+.step-circle.completed { background: var(--accent); color: #fff; cursor: pointer; }
+.step-circle.completed:hover { transform: scale(1.12); box-shadow: 0 2px 12px rgba(16,185,129,.35); }
 .step-label {
     margin-top: 8px;
     font-size: .78rem;

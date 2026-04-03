@@ -68,27 +68,25 @@
 <div class="adm-grid-2">
     <div class="adm-card">
         <div class="adm-card-header">
-            <h2><i class="fas fa-ranking-star"></i> Performance (mês)</h2>
+            <h2><i class="fas fa-calendar-week"></i> Ocupação da Semana</h2>
         </div>
-        <div class="adm-table-wrap">
-            <table class="adm-table">
-                <thead><tr><th>Profissional</th><th>Atend.</th><th>Cancel.</th><th>Taxa</th></tr></thead>
-                <tbody>
-                    {% for p in por_profissional %}
-                    <tr>
-                        <td><strong>{{ p.nome }}</strong></td>
-                        <td>{{ p.total }}</td>
-                        <td>{{ p.cancelados }}</td>
-                        <td>
-                            {% if p.total > 0 %}
-                            {% set taxa = ((1 - p.cancelados / p.total) * 100)|round|int %}
-                            <span class="adm-badge {% if taxa >= 85 %}bg-accent{% elif taxa >= 70 %}bg-warn{% else %}bg-danger{% endif %}">{{ taxa }}%</span>
-                            {% else %}<span class="adm-badge bg-muted">—</span>{% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div style="padding:20px;">
+            <div style="display:flex;gap:10px;justify-content:space-between;">
+                {% for d in ocupacao_semana %}
+                <div style="flex:1;text-align:center;padding:14px 8px;border-radius:12px;
+                    {% if d.is_hoje %}background:var(--primary);color:#fff;{% else %}background:var(--adm-bg-muted);{% endif %}">
+                    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px;">{{ d.dia_nome }}</div>
+                    <div style="font-size:.78rem;{% if d.is_hoje %}opacity:.85;{% else %}color:var(--adm-text-sec);{% endif %}margin-bottom:8px;">{{ d.dia }}</div>
+                    <div style="font-size:1.5rem;font-weight:800;">{{ d.total }}</div>
+                    <div style="font-size:.7rem;{% if d.is_hoje %}opacity:.75;{% else %}color:var(--adm-text-sec);{% endif %}">agend.</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% set total_semana = ocupacao_semana|map(attribute='total')|sum %}
+            <div style="margin-top:16px;text-align:center;padding:10px;background:var(--adm-bg-muted);border-radius:8px;">
+                <span style="font-size:.82rem;color:var(--adm-text-sec);">Total da semana:</span>
+                <strong style="font-size:1rem;margin-left:6px;">{{ total_semana }} agendamentos</strong>
+            </div>
         </div>
     </div>
     <div class="adm-card">

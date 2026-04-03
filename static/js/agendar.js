@@ -35,12 +35,18 @@ function updateStepsBar() {
         if (i < currentStep) {
             circle.classList.add('completed');
             circle.innerHTML = '<i class="fas fa-check"></i>';
+            circle.style.cursor = 'pointer';
+            circle.onclick = function() { goToStep(i); };
         } else if (i === currentStep) {
             circle.classList.add('current');
             circle.textContent = i;
+            circle.style.cursor = 'default';
+            circle.onclick = null;
             if (label) label.classList.add('current');
         } else {
             circle.textContent = i;
+            circle.style.cursor = 'default';
+            circle.onclick = null;
         }
     }
     for (let i = 1; i < TOTAL_STEPS; i++) {

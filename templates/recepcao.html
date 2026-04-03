@@ -223,6 +223,15 @@
                             </select>
                         </div>
                     </div>
+                    <div class="form-group" style="margin-bottom:16px;">
+                        <label for="w_esp"><i class="fas fa-tooth"></i> Procedimento (o que vai fazer?) *</label>
+                        <select id="w_esp" name="esp_id" required style="font-size:1rem;padding:12px 14px;border:2px solid var(--primary);border-radius:var(--radius);background:rgba(14,116,144,.04);">
+                            <option value="">Selecione o procedimento...</option>
+                            {% for e in especialidades %}
+                            <option value="{{ e.id }}">{{ e.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="w_prof"><i class="fas fa-user-doctor"></i> Profissional *</label>
@@ -230,15 +239,6 @@
                                 <option value="">Selecione...</option>
                                 {% for p in profissionais %}
                                 <option value="{{ p.id }}">Dr(a). {{ p.nome }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="w_esp"><i class="fas fa-tooth"></i> Especialidade *</label>
-                            <select id="w_esp" name="esp_id" required>
-                                <option value="">Selecione...</option>
-                                {% for e in especialidades %}
-                                <option value="{{ e.id }}">{{ e.nome }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -252,6 +252,11 @@
                             <label><i class="fas fa-door-open"></i> Sala</label>
                             <input type="text" name="sala" placeholder="Ex: 01">
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-comment-medical"></i> Observações / Queixa do paciente</label>
+                        <textarea name="obs_encaixe" rows="2" placeholder="Ex: Paciente relata dor no dente 36, quer avaliação..."
+                                  style="width:100%;padding:10px 14px;border:2px solid var(--border-color);border-radius:var(--radius);font-family:inherit;font-size:.9rem;resize:vertical;"></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary btn-lg" style="margin-top:8px;">
                         <i class="fas fa-plus"></i> Registrar Encaixe

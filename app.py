@@ -185,6 +185,15 @@ def init_db():
             FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
             FOREIGN KEY (agendamento_id) REFERENCES agendamentos(id)
         );
+
+        CREATE TABLE IF NOT EXISTS modelos_contrato (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            esp_id TEXT NOT NULL,
+            titulo TEXT NOT NULL,
+            corpo TEXT NOT NULL,
+            criado_em TEXT DEFAULT (datetime('now','localtime')),
+            FOREIGN KEY (esp_id) REFERENCES especialidades(id)
+        );
     ''')
     seed_data(conn)
     conn.close()
@@ -266,6 +275,165 @@ def seed_data(conn):
         ("conv-hapvida", "Hapvida", "005", 1),
     ]
     conn.executemany("INSERT INTO convenios VALUES (?,?,?,?)", convenios)
+
+    # Modelos de contrato por procedimento
+    modelos = [
+        ("limpeza", "Contrato – Limpeza e Profilaxia",
+         """<h2>CONTRATO DE PRESTAÇÃO DE SERVIÇO ODONTOLÓGICO</h2>
+<h3>Limpeza e Profilaxia Dental</h3>
+<p>Pelo presente instrumento particular, de um lado <strong>OdontoAgenda Clínica Odontológica</strong>, inscrita no CNPJ sob nº XX.XXX.XXX/0001-XX, doravante denominada <strong>CONTRATADA</strong>, representada pelo(a) <strong>Dr(a). {{PROFISSIONAL}}</strong>, CRO {{CRO}}, e de outro lado <strong>{{PACIENTE}}</strong>, CPF nº {{CPF}}, telefone {{TELEFONE}}, doravante denominado(a) <strong>CONTRATANTE</strong>.</p>
+<h4>CLÁUSULA 1ª – DO OBJETO</h4>
+<p>O presente contrato tem por objeto a realização de procedimento de <strong>Limpeza e Profilaxia Dental</strong>, que consiste na remoção de tártaro, placa bacteriana e polimento dentário.</p>
+<h4>CLÁUSULA 2ª – DO VALOR E PAGAMENTO</h4>
+<p>O valor total do procedimento é de <strong>R$ {{VALOR}}</strong>, a ser pago conforme acordado entre as partes.</p>
+<h4>CLÁUSULA 3ª – DAS SESSÕES</h4>
+<p>O procedimento será realizado em sessão única com duração aproximada de {{DURACAO}} minutos, na data de {{DATA}}.</p>
+<h4>CLÁUSULA 4ª – DAS OBRIGAÇÕES DO CONTRATANTE</h4>
+<p>Comparecer pontualmente às consultas agendadas; informar ao profissional sobre seu histórico de saúde; seguir as orientações pós-procedimento.</p>
+<h4>CLÁUSULA 5ª – DO FORO</h4>
+<p>Fica eleito o foro da comarca de São Paulo – SP para dirimir quaisquer dúvidas oriundas deste contrato.</p>
+<br><br>
+<p>São Paulo, {{DATA_EXTENSO}}</p>
+<br>
+<div style="display:flex;justify-content:space-between;margin-top:40px;">
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATADA</strong><br>{{PROFISSIONAL}}<br>CRO {{CRO}}</div>
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATANTE</strong><br>{{PACIENTE}}</div>
+</div>"""),
+        ("clareamento", "Contrato – Clareamento Dental",
+         """<h2>CONTRATO DE PRESTAÇÃO DE SERVIÇO ODONTOLÓGICO</h2>
+<h3>Clareamento Dental</h3>
+<p>Pelo presente instrumento particular, de um lado <strong>OdontoAgenda Clínica Odontológica</strong>, inscrita no CNPJ sob nº XX.XXX.XXX/0001-XX, doravante denominada <strong>CONTRATADA</strong>, representada pelo(a) <strong>Dr(a). {{PROFISSIONAL}}</strong>, CRO {{CRO}}, e de outro lado <strong>{{PACIENTE}}</strong>, CPF nº {{CPF}}, telefone {{TELEFONE}}, doravante denominado(a) <strong>CONTRATANTE</strong>.</p>
+<h4>CLÁUSULA 1ª – DO OBJETO</h4>
+<p>Tratamento estético de <strong>Clareamento Dental</strong>, visando a remoção de manchas e escurecimento, podendo ser realizado em consultório e/ou caseiro conforme prescrição profissional.</p>
+<h4>CLÁUSULA 2ª – DO VALOR E PAGAMENTO</h4>
+<p>O valor total é de <strong>R$ {{VALOR}}</strong>. Sinal de <strong>R$ {{SINAL}}</strong> pago no agendamento.</p>
+<h4>CLÁUSULA 3ª – DOS RISCOS E SENSIBILIDADE</h4>
+<p>O(A) CONTRATANTE declara estar ciente de que o clareamento pode causar sensibilidade temporária e que os resultados variam conforme cada organismo.</p>
+<h4>CLÁUSULA 4ª – DAS SESSÕES</h4>
+<p>Sessão prevista de {{DURACAO}} minutos em {{DATA}}. Podem ser necessárias sessões adicionais.</p>
+<h4>CLÁUSULA 5ª – DO FORO</h4>
+<p>Foro da comarca de São Paulo – SP.</p>
+<br><br>
+<p>São Paulo, {{DATA_EXTENSO}}</p>
+<br>
+<div style="display:flex;justify-content:space-between;margin-top:40px;">
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATADA</strong><br>{{PROFISSIONAL}}<br>CRO {{CRO}}</div>
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATANTE</strong><br>{{PACIENTE}}</div>
+</div>"""),
+        ("canal", "Contrato – Tratamento de Canal",
+         """<h2>CONTRATO DE PRESTAÇÃO DE SERVIÇO ODONTOLÓGICO</h2>
+<h3>Tratamento de Canal (Endodontia)</h3>
+<p>Pelo presente instrumento particular, de um lado <strong>OdontoAgenda Clínica Odontológica</strong>, inscrita no CNPJ sob nº XX.XXX.XXX/0001-XX, doravante denominada <strong>CONTRATADA</strong>, representada pelo(a) <strong>Dr(a). {{PROFISSIONAL}}</strong>, CRO {{CRO}}, e de outro lado <strong>{{PACIENTE}}</strong>, CPF nº {{CPF}}, telefone {{TELEFONE}}, doravante denominado(a) <strong>CONTRATANTE</strong>.</p>
+<h4>CLÁUSULA 1ª – DO OBJETO</h4>
+<p>Realização de <strong>Tratamento Endodôntico (Canal)</strong>, que consiste na remoção da polpa dentária, limpeza, desinfecção e selamento dos canais radiculares.</p>
+<h4>CLÁUSULA 2ª – DO VALOR E PAGAMENTO</h4>
+<p>Valor total de <strong>R$ {{VALOR}}</strong>. Sinal de <strong>R$ {{SINAL}}</strong>.</p>
+<h4>CLÁUSULA 3ª – DAS SESSÕES</h4>
+<p>Podem ser necessárias de 1 a 3 sessões de aproximadamente {{DURACAO}} minutos cada, conforme complexidade do caso. Primeira sessão em {{DATA}}.</p>
+<h4>CLÁUSULA 4ª – DOS RISCOS</h4>
+<p>O(A) CONTRATANTE foi informado(a) que: pode haver desconforto pós-operatório; em casos raros pode ser necessária cirurgia complementar; a restauração definitiva é indispensável após o tratamento.</p>
+<h4>CLÁUSULA 5ª – DO FORO</h4>
+<p>Foro da comarca de São Paulo – SP.</p>
+<br><br>
+<p>São Paulo, {{DATA_EXTENSO}}</p>
+<br>
+<div style="display:flex;justify-content:space-between;margin-top:40px;">
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATADA</strong><br>{{PROFISSIONAL}}<br>CRO {{CRO}}</div>
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATANTE</strong><br>{{PACIENTE}}</div>
+</div>"""),
+        ("restauracao", "Contrato – Restauração Dentária",
+         """<h2>CONTRATO DE PRESTAÇÃO DE SERVIÇO ODONTOLÓGICO</h2>
+<h3>Restauração Dentária</h3>
+<p>Pelo presente instrumento particular, de um lado <strong>OdontoAgenda Clínica Odontológica</strong>, doravante denominada <strong>CONTRATADA</strong>, representada pelo(a) <strong>Dr(a). {{PROFISSIONAL}}</strong>, CRO {{CRO}}, e de outro lado <strong>{{PACIENTE}}</strong>, CPF nº {{CPF}}, telefone {{TELEFONE}}, doravante denominado(a) <strong>CONTRATANTE</strong>.</p>
+<h4>CLÁUSULA 1ª – DO OBJETO</h4>
+<p>Realização de <strong>Restauração Dentária</strong> para reparo de dentes com cárie ou fratura, utilizando materiais restauradores (resina composta ou amálgama).</p>
+<h4>CLÁUSULA 2ª – DO VALOR</h4>
+<p>Valor total: <strong>R$ {{VALOR}}</strong>.</p>
+<h4>CLÁUSULA 3ª – DAS SESSÕES</h4>
+<p>Sessão única de {{DURACAO}} minutos em {{DATA}}.</p>
+<h4>CLÁUSULA 4ª – DO FORO</h4>
+<p>Foro da comarca de São Paulo – SP.</p>
+<br><br><p>São Paulo, {{DATA_EXTENSO}}</p><br>
+<div style="display:flex;justify-content:space-between;margin-top:40px;">
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATADA</strong><br>{{PROFISSIONAL}}<br>CRO {{CRO}}</div>
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATANTE</strong><br>{{PACIENTE}}</div>
+</div>"""),
+        ("extracao", "Contrato – Extração Dentária",
+         """<h2>CONTRATO DE PRESTAÇÃO DE SERVIÇO ODONTOLÓGICO</h2>
+<h3>Extração Dentária</h3>
+<p>Pelo presente instrumento particular, de um lado <strong>OdontoAgenda Clínica Odontológica</strong>, doravante denominada <strong>CONTRATADA</strong>, representada pelo(a) <strong>Dr(a). {{PROFISSIONAL}}</strong>, CRO {{CRO}}, e de outro lado <strong>{{PACIENTE}}</strong>, CPF nº {{CPF}}, telefone {{TELEFONE}}, doravante denominado(a) <strong>CONTRATANTE</strong>.</p>
+<h4>CLÁUSULA 1ª – DO OBJETO</h4>
+<p>Realização de <strong>Extração Dentária</strong>, procedimento cirúrgico para remoção de dente(s) comprometido(s) ou incluso(s).</p>
+<h4>CLÁUSULA 2ª – DO VALOR</h4>
+<p>Valor total: <strong>R$ {{VALOR}}</strong>.</p>
+<h4>CLÁUSULA 3ª – DOS RISCOS</h4>
+<p>O(A) CONTRATANTE foi informado(a) dos riscos inerentes, incluindo: sangramento, inchaço, parestesia temporária, necessidade de pontos e repouso pós-operatório conforme orientação profissional.</p>
+<h4>CLÁUSULA 4ª – DAS SESSÕES</h4>
+<p>Sessão de {{DURACAO}} minutos em {{DATA}}, com retorno para remoção de pontos se necessário.</p>
+<h4>CLÁUSULA 5ª – DO FORO</h4>
+<p>Foro da comarca de São Paulo – SP.</p>
+<br><br><p>São Paulo, {{DATA_EXTENSO}}</p><br>
+<div style="display:flex;justify-content:space-between;margin-top:40px;">
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATADA</strong><br>{{PROFISSIONAL}}<br>CRO {{CRO}}</div>
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATANTE</strong><br>{{PACIENTE}}</div>
+</div>"""),
+        ("ortodontia", "Contrato – Ortodontia",
+         """<h2>CONTRATO DE PRESTAÇÃO DE SERVIÇO ODONTOLÓGICO</h2>
+<h3>Tratamento Ortodôntico</h3>
+<p>Pelo presente instrumento particular, de um lado <strong>OdontoAgenda Clínica Odontológica</strong>, doravante denominada <strong>CONTRATADA</strong>, representada pelo(a) <strong>Dr(a). {{PROFISSIONAL}}</strong>, CRO {{CRO}}, e de outro lado <strong>{{PACIENTE}}</strong>, CPF nº {{CPF}}, telefone {{TELEFONE}}, doravante denominado(a) <strong>CONTRATANTE</strong>.</p>
+<h4>CLÁUSULA 1ª – DO OBJETO</h4>
+<p>Tratamento de <strong>Ortodontia</strong> para correção do alinhamento e oclusão dentária por meio de aparelho ortodôntico fixo e/ou móvel.</p>
+<h4>CLÁUSULA 2ª – DO VALOR E PAGAMENTO</h4>
+<p>Valor total estimado: <strong>R$ {{VALOR}}</strong>. Sinal de <strong>R$ {{SINAL}}</strong>, com parcelas mensais conforme plano de tratamento.</p>
+<h4>CLÁUSULA 3ª – DA DURAÇÃO</h4>
+<p>O tratamento ortodôntico tem duração estimada de 12 a 36 meses, podendo variar conforme evolução clínica. Consultas mensais de {{DURACAO}} minutos. Início em {{DATA}}.</p>
+<h4>CLÁUSULA 4ª – DAS OBRIGAÇÕES DO CONTRATANTE</h4>
+<p>Comparecer às consultas mensais; manter higiene bucal rigorosa; não remover ou ajustar o aparelho por conta própria; comunicar qualquer desconforto.</p>
+<h4>CLÁUSULA 5ª – DO FORO</h4>
+<p>Foro da comarca de São Paulo – SP.</p>
+<br><br><p>São Paulo, {{DATA_EXTENSO}}</p><br>
+<div style="display:flex;justify-content:space-between;margin-top:40px;">
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATADA</strong><br>{{PROFISSIONAL}}<br>CRO {{CRO}}</div>
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATANTE</strong><br>{{PACIENTE}}</div>
+</div>"""),
+        ("implante", "Contrato – Implante Dentário",
+         """<h2>CONTRATO DE PRESTAÇÃO DE SERVIÇO ODONTOLÓGICO</h2>
+<h3>Implante Dentário</h3>
+<p>Pelo presente instrumento particular, de um lado <strong>OdontoAgenda Clínica Odontológica</strong>, doravante denominada <strong>CONTRATADA</strong>, representada pelo(a) <strong>Dr(a). {{PROFISSIONAL}}</strong>, CRO {{CRO}}, e de outro lado <strong>{{PACIENTE}}</strong>, CPF nº {{CPF}}, telefone {{TELEFONE}}, doravante denominado(a) <strong>CONTRATANTE</strong>.</p>
+<h4>CLÁUSULA 1ª – DO OBJETO</h4>
+<p>Realização de procedimento de <strong>Implante Dentário</strong>, consistindo na inserção cirúrgica de pino de titânio no osso alveolar e posterior instalação de prótese sobre implante.</p>
+<h4>CLÁUSULA 2ª – DO VALOR E PAGAMENTO</h4>
+<p>Valor total: <strong>R$ {{VALOR}}</strong>. Pagamento integral exigido previamente.</p>
+<h4>CLÁUSULA 3ª – DAS ETAPAS</h4>
+<p>Fase cirúrgica ({{DURACAO}} min, em {{DATA}}); período de osseointegração (3-6 meses); reabertura e moldagem; instalação da prótese definitiva.</p>
+<h4>CLÁUSULA 4ª – DOS RISCOS</h4>
+<p>O(A) CONTRATANTE foi informado(a) sobre: possibilidade de rejeição do implante; necessidade de enxerto ósseo; parestesia; infecção; e que tabagismo e doenças como diabetes podem comprometer o resultado.</p>
+<h4>CLÁUSULA 5ª – DO FORO</h4>
+<p>Foro da comarca de São Paulo – SP.</p>
+<br><br><p>São Paulo, {{DATA_EXTENSO}}</p><br>
+<div style="display:flex;justify-content:space-between;margin-top:40px;">
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATADA</strong><br>{{PROFISSIONAL}}<br>CRO {{CRO}}</div>
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATANTE</strong><br>{{PACIENTE}}</div>
+</div>"""),
+        ("avaliacao", "Contrato – Avaliação Geral",
+         """<h2>CONTRATO DE PRESTAÇÃO DE SERVIÇO ODONTOLÓGICO</h2>
+<h3>Avaliação e Consulta Geral</h3>
+<p>Pelo presente instrumento particular, de um lado <strong>OdontoAgenda Clínica Odontológica</strong>, doravante denominada <strong>CONTRATADA</strong>, representada pelo(a) <strong>Dr(a). {{PROFISSIONAL}}</strong>, CRO {{CRO}}, e de outro lado <strong>{{PACIENTE}}</strong>, CPF nº {{CPF}}, telefone {{TELEFONE}}, doravante denominado(a) <strong>CONTRATANTE</strong>.</p>
+<h4>CLÁUSULA 1ª – DO OBJETO</h4>
+<p>Consulta de <strong>Avaliação Geral</strong> da saúde bucal, incluindo exame clínico, análise radiográfica (se necessário) e planejamento de tratamento.</p>
+<h4>CLÁUSULA 2ª – DO VALOR</h4>
+<p>Valor da consulta: <strong>R$ {{VALOR}}</strong>.</p>
+<h4>CLÁUSULA 3ª – DA SESSÃO</h4>
+<p>Sessão de {{DURACAO}} minutos em {{DATA}}.</p>
+<h4>CLÁUSULA 4ª – DO FORO</h4>
+<p>Foro da comarca de São Paulo – SP.</p>
+<br><br><p>São Paulo, {{DATA_EXTENSO}}</p><br>
+<div style="display:flex;justify-content:space-between;margin-top:40px;">
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATADA</strong><br>{{PROFISSIONAL}}<br>CRO {{CRO}}</div>
+<div style="text-align:center;width:45%;"><hr><strong>CONTRATANTE</strong><br>{{PACIENTE}}</div>
+</div>"""),
+    ]
+    conn.executemany("INSERT INTO modelos_contrato (esp_id, titulo, corpo) VALUES (?,?,?)", modelos)
 
     conn.commit()
 
@@ -978,6 +1146,62 @@ def cancelar_agendamento(ag_id):
     return redirect(url_for('painel_profissional'))
 
 
+@app.route("/profissional/contrato/<int:ag_id>")
+@login_required_prof
+def gerar_contrato(ag_id):
+    conn = get_db()
+    ag = conn.execute("""
+        SELECT a.*, e.nome as esp_nome, e.duracao as esp_duracao,
+               e.preco_min, e.preco_max, e.valor_sinal,
+               p.nome as prof_nome, p.cro as prof_cro
+        FROM agendamentos a
+        JOIN especialidades e ON a.esp_id = e.id
+        JOIN profissionais p ON a.prof_id = p.id
+        WHERE a.id = ? AND a.prof_id = ?
+    """, (ag_id, session["prof_id"])).fetchone()
+
+    if not ag:
+        flash("Agendamento não encontrado.", "error")
+        conn.close()
+        return redirect(url_for("agenda_profissional"))
+
+    modelo = conn.execute("""
+        SELECT * FROM modelos_contrato WHERE esp_id = ? ORDER BY id DESC LIMIT 1
+    """, (ag["esp_id"],)).fetchone()
+    conn.close()
+
+    if not modelo:
+        flash("Não há modelo de contrato para esse procedimento.", "error")
+        return redirect(url_for("agenda_profissional"))
+
+    # Formata data por extenso
+    MESES = ["janeiro","fevereiro","março","abril","maio","junho",
+             "julho","agosto","setembro","outubro","novembro","dezembro"]
+    dt = datetime.strptime(ag["data"], "%Y-%m-%d")
+    data_extenso = f"{dt.day} de {MESES[dt.month-1]} de {dt.year}"
+    data_fmt = dt.strftime("%d/%m/%Y")
+
+    valor = f'{ag["pagamento_valor"]:.2f}' if ag["pagamento_valor"] else f'{ag["preco_min"]:.0f} a R$ {ag["preco_max"]:.0f}'
+    sinal = f'{ag["valor_sinal"]:.2f}' if ag["valor_sinal"] else "0,00"
+
+    corpo = modelo["corpo"]
+    corpo = corpo.replace("{{PACIENTE}}", ag["paciente_nome"] or "")
+    corpo = corpo.replace("{{CPF}}", ag["paciente_cpf"] or "Não informado")
+    corpo = corpo.replace("{{TELEFONE}}", ag["paciente_telefone"] or "")
+    corpo = corpo.replace("{{PROFISSIONAL}}", ag["prof_nome"] or "")
+    corpo = corpo.replace("{{CRO}}", ag["prof_cro"] or "")
+    corpo = corpo.replace("{{VALOR}}", valor)
+    corpo = corpo.replace("{{SINAL}}", sinal)
+    corpo = corpo.replace("{{DURACAO}}", str(ag["esp_duracao"]))
+    corpo = corpo.replace("{{DATA}}", data_fmt)
+    corpo = corpo.replace("{{DATA_EXTENSO}}", data_extenso)
+    corpo = corpo.replace("{{PROCEDIMENTO}}", ag["esp_nome"] or "")
+
+    return render_template("contrato.html",
+        ag=dict(ag), modelo=dict(modelo), corpo=corpo,
+        data_extenso=data_extenso)
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # PAINEL DA RECEPÇÃO
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -993,7 +1217,7 @@ def recepcao_painel():
         FROM agendamentos a
         JOIN especialidades e ON a.esp_id = e.id
         JOIN profissionais p ON a.prof_id = p.id
-        WHERE a.status = 'pendente' AND a.data >= ?
+        WHERE a.status IN ('pendente','confirmado') AND a.data >= ?
         ORDER BY a.data, a.hora
     """, (hoje,)).fetchall()
 
@@ -1115,6 +1339,7 @@ def recepcao_walkin():
     esp_id = request.form.get("esp_id")
     hora = request.form.get("hora", agora)
     sala = request.form.get("sala", "").strip()
+    obs_encaixe = request.form.get("obs_encaixe", "").strip()
 
     if tipo_atendimento != "convenio":
         convenio_id = None
@@ -1137,7 +1362,7 @@ def recepcao_walkin():
         tipo_atendimento, convenio_id,
         prof_id, esp_id, hoje, hora, esp["duracao"] if esp else 30, "confirmado",
         "nao_aplicavel", None, 0,
-        None, None, "Agendamento presencial (walk-in)", sala,
+        None, None, f"Encaixe presencial{(' — ' + obs_encaixe) if obs_encaixe else ''}", sala,
         f"recepcao:{session['user_id']}"
     ))
     ag_id = cursor.lastrowid
@@ -1330,6 +1555,26 @@ def admin_dashboard():
         WHERE p.ativo=1 GROUP BY p.id ORDER BY total DESC
     """, (mes,)).fetchall()
 
+    # Ocupação da semana
+    from datetime import timedelta
+    hoje_dt = date.today()
+    seg = hoje_dt - timedelta(days=hoje_dt.weekday())  # segunda
+    ocupacao_semana = []
+    dias_nome = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+    for i in range(6):
+        dia = seg + timedelta(days=i)
+        cnt = conn.execute(
+            "SELECT COUNT(*) FROM agendamentos WHERE data=? AND status != 'cancelado'",
+            (dia.isoformat(),)
+        ).fetchone()[0]
+        ocupacao_semana.append({
+            'dia_nome': dias_nome[i],
+            'dia': f"{dia.day:02d}/{dia.month:02d}",
+            'data_iso': dia.isoformat(),
+            'total': cnt,
+            'is_hoje': dia == hoje_dt
+        })
+
     por_especialidade = conn.execute("""
         SELECT e.nome, COUNT(a.id) as total,
                SUM(CASE WHEN a.tipo_atendimento='convenio' THEN 1 ELSE 0 END) as convenio,
@@ -1355,6 +1600,7 @@ def admin_dashboard():
         medicos_hoje=medicos_hoje,
         por_profissional=[dict(r) for r in por_profissional],
         por_especialidade=[dict(r) for r in por_especialidade],
+        ocupacao_semana=ocupacao_semana,
         ultimos=ultimos, nao_lidas=_admin_nao_lidas(get_db()), hoje=hoje,
         user=_admin_user())
 
@@ -2078,7 +2324,7 @@ def enfermeira_painel():
     conn = get_db()
     hoje = date.today().isoformat()
 
-    # Pacientes pendentes de triagem (confirmados hoje, sem triagem feita)
+    # Pacientes pendentes de triagem (confirmados hoje ou futuros, sem triagem feita)
     pendentes = conn.execute("""
         SELECT a.*, e.nome as esp_nome, p.nome as prof_nome,
                c.nome as convenio_nome
@@ -2086,8 +2332,8 @@ def enfermeira_painel():
         JOIN especialidades e ON a.esp_id = e.id
         JOIN profissionais p ON a.prof_id = p.id
         LEFT JOIN convenios c ON a.convenio_id = c.id
-        WHERE a.data = ? AND a.status = 'confirmado' AND a.triagem_status = 'pendente'
-        ORDER BY a.hora
+        WHERE a.data >= ? AND a.status IN ('confirmado','pendente') AND a.triagem_status = 'pendente'
+        ORDER BY a.data, a.hora
     """, (hoje,)).fetchall()
 
     # Triagens realizadas hoje

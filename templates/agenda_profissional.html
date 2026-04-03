@@ -44,11 +44,16 @@
                             <span class="tag tag-warning">Pag. pendente</span>
                             {% endif %}
                         </div>
-                        <form method="POST" action="{{ url_for('cancelar_agendamento', ag_id=ag.id) }}" style="margin-left:auto;">
-                            <button type="submit" class="btn-icon-danger" title="Cancelar" onclick="return confirm('Cancelar agendamento de {{ ag.paciente_nome }}?')">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </form>
+                        <div style="display:flex;gap:6px;margin-left:auto;">
+                            <a href="{{ url_for('gerar_contrato', ag_id=ag.id) }}" class="btn-icon-contract" title="Gerar Contrato" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--primary);color:var(--primary);background:transparent;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:.82rem;transition:all .2s;">
+                                <i class="fas fa-file-contract"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('cancelar_agendamento', ag_id=ag.id) }}">
+                                <button type="submit" class="btn-icon-danger" title="Cancelar" onclick="return confirm('Cancelar agendamento de {{ ag.paciente_nome }}?')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>

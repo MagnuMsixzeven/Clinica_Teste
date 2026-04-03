@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrato – {{ ag.paciente_nome }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #0e7490;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-sec: #64748b;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+
+        /* ─── Barra de ações (não imprime) ─── */
+        .toolbar {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--primary); color: #fff;
+            padding: 14px 24px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 12px rgba(0,0,0,.15);
+        }
+        .toolbar-left { display: flex; align-items: center; gap: 14px; }
+        .toolbar-left i { font-size: 1.1rem; }
+        .toolbar-left span { font-weight: 600; font-size: .95rem; }
+        .toolbar-actions { display: flex; gap: 10px; }
+        .toolbar-actions button, .toolbar-actions a {
+            padding: 8px 18px; border-radius: 10px; border: none;
+            font-size: .85rem; font-weight: 600; cursor: pointer;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+            transition: all .2s;
+        }
+        .btn-print { background: #fff; color: var(--primary); }
+        .btn-print:hover { background: #e0f2fe; }
+        .btn-back { background: rgba(255,255,255,.15); color: #fff; }
+        .btn-back:hover { background: rgba(255,255,255,.25); }
+
+        /* ─── Contrato ─── */
+        .contrato-wrapper {
+            max-width: 800px; margin: 32px auto; padding: 0 20px 60px;
+        }
+        .contrato-meta {
+            display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;
+        }
+        .meta-tag {
+            padding: 6px 14px; border-radius: 8px; font-size: .8rem; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .meta-tag.proc { background: #e0f2fe; color: #0369a1; }
+        .meta-tag.pac { background: #f0fdf4; color: #15803d; }
+        .meta-tag.data { background: #fef3c7; color: #92400e; }
+
+        .contrato-page {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 48px 56px;
+            box-shadow: 0 4px 24px rgba(0,0,0,.06);
+            line-height: 1.75;
+        }
+        .contrato-page h2 {
+            font-size: 1.3rem; text-align: center; margin-bottom: 4px;
+            color: var(--primary); letter-spacing: -.02em;
+        }
+        .contrato-page h3 {
+            font-size: 1.05rem; text-align: center; color: var(--text-sec);
+            margin-bottom: 28px; font-weight: 500;
+        }
+        .contrato-page h4 {
+            font-size: .92rem; font-weight: 700; margin-top: 22px; margin-bottom: 6px;
+            color: var(--primary);
+        }
+        .contrato-page p { font-size: .9rem; color: var(--text); margin-bottom: 8px; }
+        .contrato-page strong { color: var(--text); }
+        .contrato-page hr { border: none; border-top: 1px solid var(--border); margin-top: 8px; }
+
+        /* ─── Print ─── */
+        @media print {
+            .toolbar { display: none !important; }
+            .contrato-meta { display: none !important; }
+            body { background: #fff; }
+            .contrato-wrapper { margin: 0; padding: 0; max-width: 100%; }
+            .contrato-page {
+                border: none; border-radius: 0; box-shadow: none;
+                padding: 20px 40px;
+            }
+        }
+        @media (max-width: 640px) {
+            .contrato-page { padding: 28px 20px; }
+            .toolbar { padding: 12px 16px; flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="toolbar">
+    <div class="toolbar-left">
+        <i class="fas fa-file-contract"></i>
+        <span>Contrato – {{ ag.esp_nome }}</span>
+    </div>
+    <div class="toolbar-actions">
+        <a href="{{ url_for('agenda_profissional') }}" class="btn-back">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+        <button class="btn-print" onclick="window.print()">
+            <i class="fas fa-print"></i> Imprimir / PDF
+        </button>
+    </div>
+</div>
+
+<div class="contrato-wrapper">
+    <div class="contrato-meta">
+        <span class="meta-tag proc"><i class="fas fa-tooth"></i> {{ ag.esp_nome }}</span>
+        <span class="meta-tag pac"><i class="fas fa-user"></i> {{ ag.paciente_nome }}</span>
+        <span class="meta-tag data"><i class="fas fa-calendar"></i> {{ ag.data }}</span>
+    </div>
+    <div class="contrato-page">
+        {{ corpo | safe }}
+    </div>
+</div>
+
+</body>
+</html>
