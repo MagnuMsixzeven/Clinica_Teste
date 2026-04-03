@@ -1,0 +1,166 @@
+{% extends "base_admin.html" if session.get('papel') == 'admin' else "base.html" %}
+{% set is_admin = session.get('papel') == 'admin' %}
+{% block title %}Triagem – {{ ag.paciente_nome }}{% endblock %}
+{% if is_admin %}{% block page_title %}Triagem – {{ ag.paciente_nome }}{% endblock %}{% endif %}
+
+{% block head %}
+<style>
+.nav-links, .header-cta, .hamburger, .mobile-menu, .site-footer { display:none !important; }
+.header-inner { justify-content:flex-start !important; }
+
+.tri-form-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:28px 32px;max-width:720px;margin:0 auto;}
+.tri-patient-bar{display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--bg-muted);border-radius:10px;margin-bottom:24px;flex-wrap:wrap;}
+.tri-patient-bar .info{flex:1;min-width:200px;}
+.tri-patient-bar .info strong{font-size:1.05rem;display:block;}
+.tri-patient-bar .info span{font-size:.82rem;color:var(--text-secondary);}
+.tri-patient-bar .meta{display:flex;gap:12px;flex-wrap:wrap;}
+.tri-tag{padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:600;}
+.tri-tag.medico{background:rgba(14,116,144,.1);color:var(--primary);}
+.tri-tag.sala{background:rgba(245,158,11,.1);color:#92400e;}
+.tri-tag.convenio{background:rgba(139,92,246,.1);color:#6d28d9;}
+
+.tri-section{margin-bottom:22px;}
+.tri-section h3{font-size:.92rem;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.tri-section h3 i{color:var(--primary);font-size:.85rem;}
+
+.tri-form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+@media(max-width:600px){.tri-form-row{grid-template-columns:1fr;}}
+
+.tri-form-row label{font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:4px;display:block;}
+.tri-form-row input, .tri-form-row textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:.88rem;font-family:inherit;}
+.tri-form-row input:focus, .tri-form-row textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(14,116,144,.1);}
+.tri-form-row textarea{resize:vertical;min-height:70px;}
+
+.tri-full{grid-column:1/-1;}
+
+.tri-vitals{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+@media(max-width:600px){.tri-vitals{grid-template-columns:1fr 1fr;}}
+.tri-vital label{font-size:.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;display:block;}
+.tri-vital input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;}
+.tri-vital input:focus{outline:none;border-color:var(--primary);}
+
+.tri-upload-area{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:border-color .2s;}
+.tri-upload-area:hover{border-color:var(--primary);}
+.tri-upload-area i{font-size:1.5rem;color:var(--primary);margin-bottom:8px;display:block;}
+.tri-upload-area p{font-size:.82rem;color:var(--text-secondary);}
+
+.tri-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px;padding-top:18px;border-top:1px solid var(--border);}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section" style="padding-top:32px;background:var(--bg-muted);min-height:calc(100vh - 68px);">
+    <div class="container" style="max-width:800px;">
+
+        <div style="margin-bottom:20px;">
+            <a href="{{ url_for('enfermeira_painel') }}" class="btn btn-outline" style="padding:6px 14px;font-size:.82rem;">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+
+        <div class="tri-form-card">
+            <h2 style="font-size:1.2rem;margin-bottom:18px;display:flex;align-items:center;gap:10px;">
+                <i class="fas fa-notes-medical" style="color:var(--primary);"></i> Triagem do Paciente
+            </h2>
+
+            <div class="tri-patient-bar">
+                <div class="info">
+                    <strong>{{ ag.paciente_nome }}</strong>
+                    <span>{{ ag.esp_nome }} · {{ ag.hora[:5] }} — {{ ag.data[8:] }}/{{ ag.data[5:7] }}/{{ ag.data[:4] }}</span>
+                    {% if ag.paciente_cpf %}<br><span>CPF: {{ ag.paciente_cpf }}</span>{% endif %}
+                </div>
+                <div class="meta">
+                    <span class="tri-tag medico"><i class="fas fa-user-doctor"></i> Dr(a). {{ ag.prof_nome }}</span>
+                    {% if ag.sala %}<span class="tri-tag sala"><i class="fas fa-door-open"></i> Sala {{ ag.sala }}</span>{% endif %}
+                    {% if ag.convenio_nome %}<span class="tri-tag convenio"><i class="fas fa-id-card"></i> {{ ag.convenio_nome }}</span>{% endif %}
+                    {% if ag.tipo_atendimento == 'particular' %}<span class="tri-tag" style="background:rgba(16,185,129,.1);color:#065f46;">Particular</span>{% endif %}
+                </div>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data">
+                <div class="tri-section">
+                    <h3><i class="fas fa-heartbeat"></i> Sinais Vitais</h3>
+                    <div class="tri-vitals">
+                        <div class="tri-vital">
+                            <label>Pressão Arterial</label>
+                            <input type="text" name="pressao_arterial" placeholder="120/80 mmHg"
+                                   value="{{ triagem.pressao_arterial if triagem else '' }}">
+                        </div>
+                        <div class="tri-vital">
+                            <label>Temperatura</label>
+                            <input type="text" name="temperatura" placeholder="36.5°C"
+                                   value="{{ triagem.temperatura if triagem else '' }}">
+                        </div>
+                        <div class="tri-vital">
+                            <label>Peso (kg)</label>
+                            <input type="text" name="peso" placeholder="70"
+                                   value="{{ triagem.peso if triagem else '' }}">
+                        </div>
+                        <div class="tri-vital">
+                            <label>Altura (cm)</label>
+                            <input type="text" name="altura" placeholder="170"
+                                   value="{{ triagem.altura if triagem else '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tri-section">
+                    <h3><i class="fas fa-comment-medical"></i> Informações Clínicas</h3>
+                    <div class="tri-form-row">
+                        <div class="tri-full">
+                            <label>Queixa Principal *</label>
+                            <textarea name="queixa" rows="3" placeholder="Descreva a queixa principal do paciente..." required>{{ triagem.queixa if triagem else '' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="tri-form-row">
+                        <div class="tri-full">
+                            <label>Sintomas</label>
+                            <textarea name="sintomas" rows="2" placeholder="Liste os sintomas relatados...">{{ triagem.sintomas if triagem else '' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="tri-form-row">
+                        <div class="tri-full">
+                            <label>Doenças Preexistentes</label>
+                            <textarea name="doencas" rows="2" placeholder="Diabetes, hipertensão, alergias...">{{ triagem.doencas if triagem else '' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="tri-form-row">
+                        <div class="tri-full">
+                            <label>Observações</label>
+                            <textarea name="observacoes" rows="2" placeholder="Observações adicionais...">{{ triagem.observacoes if triagem else '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tri-section">
+                    <h3><i class="fas fa-file-medical"></i> Exames / Anexos</h3>
+                    {% if triagem and triagem.exames_anexos %}
+                    <div style="margin-bottom:14px;">
+                        <p style="font-size:.82rem;font-weight:600;margin-bottom:8px;">Arquivos já enviados:</p>
+                        {% for path in triagem.exames_anexos | tojson | fromjson if triagem.exames_anexos %}
+                        <a href="{{ path }}" target="_blank" style="display:inline-block;padding:4px 12px;background:var(--bg-muted);border-radius:6px;font-size:.78rem;margin:2px 4px;color:var(--primary);text-decoration:none;">
+                            <i class="fas fa-file"></i> {{ path.split('/')[-1] }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="tri-upload-area" onclick="document.getElementById('exames-input').click()">
+                        <i class="fas fa-cloud-arrow-up"></i>
+                        <p>Clique para enviar exames (PDF, imagens)</p>
+                        <p id="files-selected" style="font-size:.75rem;color:var(--primary);font-weight:600;margin-top:6px;"></p>
+                    </div>
+                    <input type="file" id="exames-input" name="exames" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" style="display:none"
+                           onchange="document.getElementById('files-selected').textContent = this.files.length + ' arquivo(s) selecionado(s)'">
+                </div>
+
+                <div class="tri-actions">
+                    <a href="{{ url_for('enfermeira_painel') }}" class="btn btn-outline">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i> {{ 'Atualizar' if triagem else 'Salvar' }} Triagem
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

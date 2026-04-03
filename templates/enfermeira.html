@@ -1,0 +1,158 @@
+{% extends "base_admin.html" if session.get('papel') == 'admin' else "base.html" %}
+{% set is_admin = session.get('papel') == 'admin' %}
+{% block title %}{% if is_admin %}Triagem{% else %}Enfermagem – Triagem{% endif %}{% endblock %}
+{% if is_admin %}{% block page_title %}Triagem / Enfermagem{% endblock %}{% endif %}
+
+{% block head %}
+<style>
+.nav-links, .header-cta, .hamburger, .mobile-menu, .site-footer { display:none !important; }
+.header-inner { justify-content:flex-start !important; }
+
+.enf-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:24px;}
+.enf-tab{padding:12px 24px;font-size:.9rem;font-weight:600;color:var(--text-secondary);cursor:pointer;border:none;background:none;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;}
+.enf-tab:hover{color:var(--primary)}
+.enf-tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+.enf-tab i{margin-right:6px;}
+.enf-panel{display:none}
+.enf-panel.active{display:block}
+
+.tri-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:12px;display:flex;align-items:center;gap:16px;transition:box-shadow .15s;}
+.tri-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);}
+.tri-hora{font-size:1.1rem;font-weight:800;color:var(--primary);min-width:56px;text-align:center;}
+.tri-info{flex:1;}
+.tri-info strong{font-size:.95rem;display:block;color:var(--text);}
+.tri-info span{font-size:.8rem;color:var(--text-secondary);}
+.tri-sala{background:var(--bg-muted);padding:4px 10px;border-radius:6px;font-size:.75rem;font-weight:600;color:var(--primary);}
+.tri-badge{font-size:.7rem;padding:3px 10px;border-radius:20px;font-weight:600;}
+.tri-badge.pendente{background:rgba(245,158,11,.15);color:#92400e;}
+.tri-badge.realizada{background:rgba(16,185,129,.15);color:#065f46;}
+.tri-actions{display:flex;gap:8px;}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section" style="padding-top:32px;background:var(--bg-muted);min-height:calc(100vh - 68px);">
+    <div class="container" style="max-width:1000px;">
+
+        {% if not is_admin %}
+        <div class="panel-top">
+            <div class="panel-top-left">
+                <div class="panel-avatar-icon" style="background:rgba(236,72,153,.15);color:#ec4899;"><i class="fas fa-heart-pulse"></i></div>
+                <div>
+                    <h1 style="font-size:1.4rem;">Enfermagem</h1>
+                    <p style="color:var(--text-secondary);font-size:.88rem;">Olá, {{ user.nome }}!</p>
+                </div>
+            </div>
+            <div class="panel-top-right">
+                <a href="{{ url_for('logout') }}" class="btn btn-outline" style="padding:8px 14px;font-size:.85rem;color:var(--destructive);border-color:var(--destructive);">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}" style="margin-bottom:24px;"><i class="fas fa-info-circle"></i> {{ msg }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <div class="stat-row">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(245,158,11,.1);color:var(--warning);">
+                    <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div>
+                    <div class="stat-num">{{ pendentes|length }}</div>
+                    <div class="stat-label">Pendentes</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(16,185,129,.1);color:var(--accent);">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <div>
+                    <div class="stat-num">{{ realizadas|length }}</div>
+                    <div class="stat-label">Realizadas</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="enf-tabs">
+            <button class="enf-tab active" onclick="switchEnfTab('pendentes', this)">
+                <i class="fas fa-hourglass-half"></i> Pendentes
+                {% if pendentes|length > 0 %}<span class="tab-badge">{{ pendentes|length }}</span>{% endif %}
+            </button>
+            <button class="enf-tab" onclick="switchEnfTab('realizadas', this)">
+                <i class="fas fa-clipboard-check"></i> Realizadas
+            </button>
+        </div>
+
+        <!-- Pendentes -->
+        <div class="enf-panel active" id="tab-pendentes">
+            {% if pendentes %}
+            {% for ag in pendentes %}
+            <div class="tri-card">
+                <div class="tri-hora">{{ ag.hora[:5] }}</div>
+                <div class="tri-info">
+                    <strong>{{ ag.paciente_nome }}</strong>
+                    <span>{{ ag.esp_nome }} · Dr(a). {{ ag.prof_nome }}</span>
+                    {% if ag.convenio_nome %}<br><span style="color:var(--primary);font-weight:600;">Convênio: {{ ag.convenio_nome }}</span>{% endif %}
+                </div>
+                {% if ag.sala %}<div class="tri-sala"><i class="fas fa-door-open"></i> Sala {{ ag.sala }}</div>{% endif %}
+                <span class="tri-badge pendente">Pendente</span>
+                <div class="tri-actions">
+                    <a href="{{ url_for('enfermeira_triagem', ag_id=ag.id) }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-notes-medical"></i> Triagem
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state" style="padding:40px;text-align:center;">
+                <i class="fas fa-check-circle" style="font-size:2rem;color:var(--accent);margin-bottom:12px;display:block;"></i>
+                <p style="color:var(--text-secondary);">Nenhuma triagem pendente no momento.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Realizadas -->
+        <div class="enf-panel" id="tab-realizadas">
+            {% if realizadas %}
+            {% for ag in realizadas %}
+            <div class="tri-card">
+                <div class="tri-hora">{{ ag.hora[:5] }}</div>
+                <div class="tri-info">
+                    <strong>{{ ag.paciente_nome }}</strong>
+                    <span>{{ ag.esp_nome }} · Dr(a). {{ ag.prof_nome }}</span>
+                </div>
+                <span class="tri-badge realizada">Realizada</span>
+                <div class="tri-actions">
+                    <a href="{{ url_for('enfermeira_triagem', ag_id=ag.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye"></i> Ver
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state" style="padding:40px;text-align:center;">
+                <p style="color:var(--text-secondary);">Nenhuma triagem realizada hoje.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchEnfTab(tab, btn) {
+    document.querySelectorAll('.enf-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.enf-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    btn.classList.add('active');
+}
+</script>
+{% endblock %}

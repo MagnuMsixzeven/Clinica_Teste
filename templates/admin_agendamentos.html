@@ -1,0 +1,121 @@
+{% extends "base_admin.html" %}
+{% block title %}Agendamentos{% endblock %}
+{% block page_title %}Agendamentos{% endblock %}
+
+{% block content %}
+
+<!-- Filtros -->
+<div class="adm-filters">
+    <form method="GET" action="{{ url_for('admin_agendamentos') }}" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;width:100%;">
+        <input type="date" name="data_ini" value="{{ filtros.data_ini }}" title="Data início">
+        <input type="date" name="data_fim" value="{{ filtros.data_fim }}" title="Data fim">
+        <select name="prof_id">
+            <option value="">Todos médicos</option>
+            {% for p in profissionais %}
+            <option value="{{ p.id }}" {{ 'selected' if filtros.prof_id == p.id }}>Dr(a). {{ p.nome }}</option>
+            {% endfor %}
+        </select>
+        <select name="status">
+            <option value="">Todos status</option>
+            <option value="pendente" {{ 'selected' if filtros.status == 'pendente' }}>Pendente</option>
+            <option value="confirmado" {{ 'selected' if filtros.status == 'confirmado' }}>Confirmado</option>
+            <option value="cancelado" {{ 'selected' if filtros.status == 'cancelado' }}>Cancelado</option>
+        </select>
+        <button type="submit" class="adm-btn primary" style="padding:9px 18px;"><i class="fas fa-filter"></i> Filtrar</button>
+    </form>
+</div>
+
+<div class="adm-card">
+    <div class="adm-card-header">
+        <h2><i class="fas fa-list-check"></i> {{ agendamentos|length }} agendamentos encontrados</h2>
+    </div>
+    <div class="adm-table-wrap">
+        <table class="adm-table">
+            <thead>
+                <tr><th>Data</th><th>Hora</th><th>Paciente</th><th>Telefone</th><th>Procedimento</th><th>Profissional</th><th>Status</th><th>Pag.</th><th>Ações</th></tr>
+            </thead>
+            <tbody>
+                {% for ag in agendamentos %}
+                <tr>
+                    <td>{{ ag.data[8:] }}/{{ ag.data[5:7] }}/{{ ag.data[:4] }}</td>
+                    <td><strong>{{ ag.hora }}</strong></td>
+                    <td><strong>{{ ag.paciente_nome }}</strong></td>
+                    <td>{{ ag.paciente_telefone }}</td>
+                    <td>{{ ag.esp_nome }}</td>
+                    <td>Dr(a). {{ ag.prof_nome }}</td>
+                    <td>
+                        {% if ag.status == 'pendente' %}<span class="adm-badge bg-warn">Pendente</span>
+                        {% elif ag.status == 'confirmado' %}<span class="adm-badge bg-accent">Confirmado</span>
+                        {% elif ag.status == 'cancelado' %}<span class="adm-badge bg-danger">Cancelado</span>
+                        {% else %}<span class="adm-badge bg-muted">{{ ag.status }}</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if ag.pagamento_status == 'pago' %}<span class="adm-badge bg-accent">Pago</span>
+                        {% elif ag.pagamento_status == 'pendente' %}<span class="adm-badge bg-warn">Pend.</span>
+                        {% else %}<span class="adm-badge bg-muted">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if ag.status != 'cancelado' %}
+                        <div class="adm-actions">
+                            {% if ag.status == 'pendente' %}
+                            <form method="POST" action="{{ url_for('admin_confirmar', ag_id=ag.id) }}" style="display:inline;">
+                                <button class="adm-btn-icon primary" title="Confirmar"><i class="fas fa-check"></i></button>
+                            </form>
+                            {% endif %}
+                            <button class="adm-btn-icon primary" title="Remarcar" onclick="openRemarcar({{ ag.id }},'{{ ag.data }}','{{ ag.hora }}')"><i class="fas fa-calendar-pen"></i></button>
+                            <form method="POST" action="{{ url_for('admin_cancelar', ag_id=ag.id) }}" style="display:inline;">
+                                <input type="hidden" name="redirect" value="agendamentos">
+                                <button class="adm-btn-icon danger" title="Cancelar" onclick="return confirm('Cancelar?')"><i class="fas fa-times"></i></button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not agendamentos %}
+                <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--adm-text-sec);"><i class="fas fa-inbox" style="font-size:1.5rem;display:block;margin-bottom:8px;"></i>Nenhum agendamento encontrado.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Remarcar -->
+<div class="adm-modal-overlay" id="modal-remarcar" style="display:none;">
+    <div class="adm-modal">
+        <div class="adm-modal-header">
+            <h3><i class="fas fa-calendar-pen"></i> Remarcar Agendamento</h3>
+            <button class="adm-modal-close" onclick="closeRemarcar()"><i class="fas fa-times"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('admin_remarcar') }}" class="adm-modal-body">
+            <input type="hidden" name="ag_id" id="rem-ag-id">
+            <input type="hidden" name="redirect" value="agendamentos">
+            <div class="adm-form-row">
+                <div class="adm-form-group">
+                    <label>Nova Data</label>
+                    <input type="date" name="nova_data" id="rem-data" required>
+                </div>
+                <div class="adm-form-group">
+                    <label>Novo Horário</label>
+                    <input type="time" name="nova_hora" id="rem-hora" required>
+                </div>
+            </div>
+            <button type="submit" class="adm-btn primary"><i class="fas fa-check"></i> Confirmar Remarcação</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openRemarcar(id, data, hora) {
+    document.getElementById('rem-ag-id').value = id;
+    document.getElementById('rem-data').value = data;
+    document.getElementById('rem-hora').value = hora;
+    document.getElementById('modal-remarcar').style.display = 'flex';
+}
+function closeRemarcar() { document.getElementById('modal-remarcar').style.display = 'none'; }
+document.getElementById('modal-remarcar').addEventListener('click', function(e) { if(e.target===this) closeRemarcar(); });
+</script>
+{% endblock %}

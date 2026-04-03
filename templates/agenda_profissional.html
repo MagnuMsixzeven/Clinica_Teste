@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Agenda – {{ prof.nome }}{% endblock %}
+
+{% block content %}
+<section class="section" style="padding-top:32px;background:var(--bg-muted);min-height:calc(100vh - 68px);">
+    <div class="container" style="max-width:900px;">
+
+        <a href="{{ url_for('painel_profissional') }}" class="back-link"><i class="fas fa-arrow-left"></i> Voltar ao painel</a>
+
+        <h1 style="font-size:1.6rem;margin-bottom:8px;"><i class="fas fa-calendar-alt" style="color:var(--primary);margin-right:8px;"></i>Agenda – Próximos 14 dias</h1>
+        <p style="color:var(--text-secondary);margin-bottom:28px;">Visualize e gerencie seus compromissos</p>
+
+        <div class="agenda-timeline">
+            {% for dia in dias %}
+            <div class="agenda-day {{ 'off' if not dia.atende else '' }}">
+                <div class="agenda-day-header">
+                    <div>
+                        <span class="agenda-dia-semana">{{ dia.dia_semana }}</span>
+                        <span class="agenda-data">{{ dia.data_fmt }}</span>
+                    </div>
+                    {% if dia.atende %}
+                    <span class="tag tag-primary">{{ dia.agendamentos|length }} agendamento(s)</span>
+                    {% else %}
+                    <span class="tag tag-muted">Não atende</span>
+                    {% endif %}
+                </div>
+
+                {% if dia.atende and dia.agendamentos %}
+                <div class="ag-list">
+                    {% for ag in dia.agendamentos %}
+                    <div class="ag-item">
+                        <div class="ag-hora">{{ ag.hora }}</div>
+                        <div class="ag-info">
+                            <strong>{{ ag.paciente_nome }}</strong>
+                            <span>{{ ag.esp_nome }} • {{ ag.duracao }} min</span>
+                            {% if ag.paciente_telefone %}
+                            <span style="font-size:.78rem;color:var(--text-secondary);">
+                                <i class="fas fa-phone" style="font-size:.7rem;"></i> {{ ag.paciente_telefone }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="ag-badges">
+                            {% if ag.pagamento_status == 'pendente' %}
+                            <span class="tag tag-warning">Pag. pendente</span>
+                            {% endif %}
+                        </div>
+                        <form method="POST" action="{{ url_for('cancelar_agendamento', ag_id=ag.id) }}" style="margin-left:auto;">
+                            <button type="submit" class="btn-icon-danger" title="Cancelar" onclick="return confirm('Cancelar agendamento de {{ ag.paciente_nome }}?')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% elif dia.atende %}
+                <div class="empty-state-sm">
+                    <i class="fas fa-check-circle" style="color:var(--accent);"></i> Nenhum agendamento
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</section>
+{% endblock %}

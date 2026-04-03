@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Início{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-grid">
+            <div>
+                <div class="hero-badge">
+                    <i class="fas fa-tooth"></i> Clínica Odontológica
+                </div>
+                <h1>Seu sorriso merece <span class="text-gradient">cuidado especial</span></h1>
+                <p>
+                    Agende sua consulta odontológica online de forma rápida e fácil.
+                    Escolha seu dentista, horário e procedimento em poucos cliques.
+                </p>
+                <div class="hero-actions">
+                    <a href="{{ url_for('agendar') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-calendar-check"></i> Agendar Consulta
+                    </a>
+                    <a href="{{ url_for('especialidades') }}" class="btn btn-outline btn-lg">
+                        Nossas Especialidades
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <strong>5+</strong>
+                        <span>Profissionais</span>
+                    </div>
+                    <div class="hero-stat">
+                        <strong>8</strong>
+                        <span>Especialidades</span>
+                    </div>
+                    <div class="hero-stat">
+                        <strong>10k+</strong>
+                        <span>Pacientes Atendidos</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=600&h=480&fit=crop" alt="Consultório odontológico moderno">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features -->
+<section class="section section-muted">
+    <div class="container">
+        <div class="section-header">
+            <h2>Por que escolher a <span class="text-gradient">OdontoAgenda</span>?</h2>
+            <p>Tecnologia e humanização para a melhor experiência em saúde bucal</p>
+        </div>
+        <div class="features-row">
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-calendar-check"></i></div>
+                <h3>Agendamento Online</h3>
+                <p>Marque sua consulta 24h por dia, sem precisar ligar</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-user-doctor"></i></div>
+                <h3>Profissionais Qualificados</h3>
+                <p>Equipe registrada no CRO com formação especializada</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-clock"></i></div>
+                <h3>Horários Flexíveis</h3>
+                <p>Atendimento de segunda a sábado em horários variados</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-shield-halved"></i></div>
+                <h3>Segurança e Conforto</h3>
+                <p>Ambiente moderno com equipamentos de última geração</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Especialidades -->
+<section class="section">
+    <div class="container">
+        <div class="section-header">
+            <h2>Nossas <span class="text-gradient">Especialidades</span></h2>
+            <p>Tratamentos completos para toda a família</p>
+        </div>
+        <div class="card-grid">
+            {% for esp in especialidades %}
+            <a href="{{ url_for('agendar') }}?especialidade={{ esp.id }}" class="card" style="display:block;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div class="card-icon"><i class="fas {{ esp.icone }}"></i></div>
+                    <i class="fas fa-chevron-right card-arrow"></i>
+                </div>
+                <h3>{{ esp.nome }}</h3>
+                <p>{{ esp.descricao }}</p>
+                <div class="card-footer">
+                    <div><strong>{{ esp.preco_min|brl }}</strong> - <strong>{{ esp.preco_max|brl }}</strong></div>
+                    <div>~{{ esp.duracao }} min</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Equipe Destaque -->
+<section class="section section-muted">
+    <div class="container">
+        <div class="section-header">
+            <h2>Conheça nossa <span class="text-gradient">Equipe</span></h2>
+            <p>Profissionais dedicados a cuidar do seu sorriso</p>
+        </div>
+        <div class="team-grid">
+            {% for prof in profissionais[:3] %}
+            <div class="team-card">
+                <div class="team-photo">
+                    <img src="{{ prof.foto }}" alt="{{ prof.nome }}">
+                    <div class="team-photo-overlay"></div>
+                    <div class="team-photo-info">
+                        <h3>{{ prof.nome }}</h3>
+                        <span>{{ prof.cro }}</span>
+                    </div>
+                </div>
+                <div class="team-body">
+                    <p>{{ prof.bio }}</p>
+                    <a href="{{ url_for('agendar') }}?profissional={{ prof.id }}" class="btn btn-outline btn-full">
+                        <i class="fas fa-calendar"></i> Agendar com {{ prof.nome.split(' ')[0] }}
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div style="text-align:center;margin-top:36px;">
+            <a href="{{ url_for('equipe') }}" class="btn btn-outline btn-lg">Ver toda a equipe <i class="fas fa-arrow-right" style="margin-left:6px;"></i></a>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="section">
+    <div class="container">
+        <div class="cta-banner">
+            <div>
+                <h2>Pronto para cuidar do seu sorriso?</h2>
+                <p>Agende sua avaliação agora e descubra o tratamento ideal para você.</p>
+            </div>
+            <a href="{{ url_for('agendar') }}?especialidade=avaliacao" class="btn-white">
+                <i class="fas fa-calendar-check"></i> Agendar Avaliação Gratuita
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

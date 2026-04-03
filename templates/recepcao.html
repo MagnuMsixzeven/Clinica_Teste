@@ -1,0 +1,518 @@
+{% extends "base.html" %}
+{% block title %}Recepção{% endblock %}
+
+{% block content %}
+<section class="section" style="padding-top:32px;background:var(--bg-muted);min-height:calc(100vh - 68px);">
+    <div class="container" style="max-width:1100px;">
+
+        <!-- Topo -->
+        <div class="panel-top">
+            <div class="panel-top-left">
+                <div class="panel-avatar-icon" style="background:var(--accent);"><i class="fas fa-headset"></i></div>
+                <div>
+                    <h1 style="font-size:1.4rem;">Recepção</h1>
+                    <p style="color:var(--text-secondary);font-size:.88rem;">Olá, {{ user.nome }}!</p>
+                </div>
+            </div>
+            <div class="panel-top-right">
+                <a href="#" class="notif-bell" id="notif-bell" onclick="markRead(event)">
+                    <i class="fas fa-bell"></i>
+                    {% if nao_lidas > 0 %}<span class="notif-badge">{{ nao_lidas }}</span>{% endif %}
+                </a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline" style="padding:8px 14px;font-size:.85rem;color:var(--destructive);border-color:var(--destructive);">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}" style="margin-bottom:24px;"><i class="fas fa-info-circle"></i> {{ msg }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Stats rápidos -->
+        <div class="stat-row">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(245,158,11,.1);color:var(--warning);">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div>
+                    <div class="stat-num">{{ pendentes|length }}</div>
+                    <div class="stat-label">Pendentes</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(14,116,144,.1);color:var(--primary);">
+                    <i class="fas fa-calendar-day"></i>
+                </div>
+                <div>
+                    <div class="stat-num">{{ agendamentos_hoje|length }}</div>
+                    <div class="stat-label">Hoje</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="recep-tabs">
+            <button class="recep-tab active" onclick="switchTab('pendentes', this)">
+                <i class="fas fa-clock"></i> Pendentes
+                {% if pendentes|length > 0 %}<span class="tab-badge">{{ pendentes|length }}</span>{% endif %}
+            </button>
+            <button class="recep-tab" onclick="switchTab('hoje', this)">
+                <i class="fas fa-calendar-day"></i> Hoje
+            </button>
+            <button class="recep-tab" onclick="switchTab('walkin', this)">
+                <i class="fas fa-person-walking"></i> Encaixe
+            </button>
+            <button class="recep-tab" onclick="switchTab('notificar', this)">
+                <i class="fas fa-paper-plane"></i> Notificar
+            </button>
+            <button class="recep-tab" onclick="switchTab('convenios', this)">
+                <i class="fas fa-file-contract"></i> Convênios
+            </button>
+        </div>
+
+        <!-- Tab: Pendentes -->
+        <div class="recep-panel" id="tab-pendentes">
+            <div class="panel-card">
+                <div class="panel-card-header">
+                    <h2><i class="fas fa-clock" style="color:var(--warning);"></i> Agendamentos Pendentes de Confirmação</h2>
+                </div>
+                {% if pendentes %}
+                <div class="ag-list">
+                    {% for ag in pendentes %}
+                    <div class="ag-item">
+                        <div class="ag-data">{{ ag.data[8:] }}/{{ ag.data[5:7] }}</div>
+                        <div class="ag-hora">{{ ag.hora }}</div>
+                        <div class="ag-info">
+                            <strong>{{ ag.paciente_nome }}</strong>
+                            <span>{{ ag.esp_nome }} • Dr(a). {{ ag.prof_nome }}</span>
+                            {% if ag.paciente_telefone %}<span class="ag-tel"><i class="fas fa-phone"></i> {{ ag.paciente_telefone }}</span>{% endif %}
+                        </div>
+                        <div class="ag-actions">
+                            <button class="btn btn-sm btn-accent" title="Confirmar"
+                                    onclick="openConfirmar({{ ag.id }}, '{{ ag.paciente_nome }}', '{{ ag.paciente_cpf or '' }}', '{{ ag.prof_id }}')">
+                                <i class="fas fa-check"></i> Confirmar
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" title="Reagendar"
+                                    onclick="openRemarcar({{ ag.id }}, '{{ ag.data }}', '{{ ag.hora }}', '{{ ag.paciente_nome }}')">
+                                <i class="fas fa-calendar-pen"></i>
+                            </button>
+                            <form method="POST" action="{{ url_for('recepcao_cancelar', ag_id=ag.id) }}" style="display:inline;">
+                                <button type="submit" class="btn-icon-danger" title="Cancelar" onclick="return confirm('Cancelar este agendamento?')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-check-circle" style="color:var(--accent);"></i>
+                    <p>Nenhum agendamento pendente!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tab: Hoje -->
+        <div class="recep-panel" id="tab-hoje" style="display:none;">
+            <div class="panel-card">
+                <div class="panel-card-header">
+                    <h2><i class="fas fa-calendar-day" style="color:var(--primary);"></i> Agendamentos de Hoje</h2>
+                </div>
+                {% if agendamentos_hoje %}
+                <div class="ag-list">
+                    {% for ag in agendamentos_hoje %}
+                    <div class="ag-item">
+                        <div class="ag-hora">{{ ag.hora }}</div>
+                        <div class="ag-info">
+                            <strong>{{ ag.paciente_nome }}</strong>
+                            <span>{{ ag.esp_nome }} • Dr(a). {{ ag.prof_nome }}</span>
+                        </div>
+                        <div class="ag-badges">
+                            {% if ag.status == 'pendente' %}
+                            <span class="tag tag-warning">Pendente</span>
+                            {% elif ag.status == 'confirmado' %}
+                            <span class="tag tag-accent">Confirmado</span>
+                            {% endif %}
+                            {% if ag.pagamento_status == 'pendente' %}
+                            <span class="tag tag-warning">Pag. pendente</span>
+                            {% elif ag.pagamento_status == 'pago' %}
+                            <span class="tag tag-accent">Pago</span>
+                            {% endif %}
+                        </div>
+                        <div class="ag-actions">
+                            {% if ag.status == 'pendente' %}
+                            <form method="POST" action="{{ url_for('recepcao_confirmar', ag_id=ag.id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-accent" title="Confirmar"><i class="fas fa-check"></i></button>
+                            </form>
+                            {% endif %}
+                            <button class="btn btn-sm btn-outline-primary" title="Reagendar"
+                                    onclick="openRemarcar({{ ag.id }}, '{{ ag.data }}', '{{ ag.hora }}', '{{ ag.paciente_nome }}')">
+                                <i class="fas fa-calendar-pen"></i>
+                            </button>
+                            <form method="POST" action="{{ url_for('recepcao_cancelar', ag_id=ag.id) }}" style="display:inline;">
+                                <button type="submit" class="btn-icon-danger" title="Cancelar" onclick="return confirm('Cancelar este agendamento?')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                            <button class="btn btn-sm btn-outline-sec" title="Notificar médico"
+                                    onclick="pushMedico({{ ag.id }}, '{{ ag.paciente_nome }}', '{{ ag.prof_id }}')">
+                                <i class="fas fa-bell"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-coffee"></i>
+                    <p>Nenhum agendamento para hoje.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tab: Walk-in (Encaixe) -->
+        <div class="recep-panel" id="tab-walkin" style="display:none;">
+            <div class="panel-card">
+                <div class="panel-card-header">
+                    <h2><i class="fas fa-person-walking" style="color:var(--primary);"></i> Agendar Paciente Presencial</h2>
+                </div>
+                <form method="POST" action="{{ url_for('recepcao_walkin') }}" class="walkin-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="w_nome"><i class="fas fa-user"></i> Nome do Paciente *</label>
+                            <input type="text" id="w_nome" name="paciente_nome" required placeholder="Nome completo">
+                        </div>
+                        <div class="form-group">
+                            <label for="w_tel"><i class="fas fa-phone"></i> Telefone</label>
+                            <input type="tel" id="w_tel" name="paciente_telefone" placeholder="(11) 99999-9999">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="w_cpf"><i class="fas fa-id-card"></i> CPF</label>
+                            <input type="text" id="w_cpf" name="paciente_cpf" placeholder="000.000.000-00">
+                        </div>
+                        <div class="form-group">
+                            <label for="w_rg"><i class="fas fa-id-badge"></i> RG</label>
+                            <input type="text" id="w_rg" name="paciente_rg" placeholder="00.000.000-0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-file-invoice-dollar"></i> Tipo de Atendimento</label>
+                            <select name="tipo_atendimento" onchange="toggleConvenioW(this.value)">
+                                <option value="particular">Particular</option>
+                                <option value="convenio">Convênio</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="w_conv_group" style="display:none;">
+                            <label><i class="fas fa-hospital"></i> Convênio</label>
+                            <select name="convenio_id">
+                                <option value="">Selecione...</option>
+                                {% for c in convenios %}
+                                <option value="{{ c.id }}">{{ c.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="w_prof"><i class="fas fa-user-doctor"></i> Profissional *</label>
+                            <select id="w_prof" name="prof_id" required>
+                                <option value="">Selecione...</option>
+                                {% for p in profissionais %}
+                                <option value="{{ p.id }}">Dr(a). {{ p.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="w_esp"><i class="fas fa-tooth"></i> Especialidade *</label>
+                            <select id="w_esp" name="esp_id" required>
+                                <option value="">Selecione...</option>
+                                {% for e in especialidades %}
+                                <option value="{{ e.id }}">{{ e.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group" style="max-width:160px;">
+                            <label for="w_hora"><i class="fas fa-clock"></i> Horário</label>
+                            <input type="time" id="w_hora" name="hora">
+                        </div>
+                        <div class="form-group" style="max-width:160px;">
+                            <label><i class="fas fa-door-open"></i> Sala</label>
+                            <input type="text" name="sala" placeholder="Ex: 01">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="margin-top:8px;">
+                        <i class="fas fa-plus"></i> Registrar Encaixe
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tab: Notificar Médicos -->
+        <div class="recep-panel" id="tab-notificar" style="display:none;">
+            <div class="panel-card">
+                <div class="panel-card-header">
+                    <h2><i class="fas fa-paper-plane" style="color:var(--primary);"></i> Enviar Notificação para Médicos</h2>
+                </div>
+                <form id="pushForm" class="walkin-form" onsubmit="enviarPushForm(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-user-doctor"></i> Destinatário *</label>
+                            <select id="push_dest" required>
+                                <option value="todos">Todos os Médicos</option>
+                                {% for p in profissionais %}
+                                <option value="{{ p.id }}">Dr(a). {{ p.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-heading"></i> Título *</label>
+                            <input type="text" id="push_titulo" required placeholder="Ex: Paciente na recepção">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:16px;">
+                        <label><i class="fas fa-message"></i> Mensagem</label>
+                        <textarea id="push_msg" rows="3" placeholder="Detalhes da notificação..."
+                                  style="width:100%;padding:10px 14px;border:2px solid var(--border-color);border-radius:var(--radius);font-family:inherit;font-size:.9rem;resize:vertical;"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="margin-top:4px;">
+                        <i class="fas fa-paper-plane"></i> Enviar Push
+                    </button>
+                    <div id="pushFeedback" style="margin-top:12px;display:none;" class="alert"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tab: Convênios -->
+        <div class="recep-panel" id="tab-convenios" style="display:none;">
+            <div class="panel-card" style="text-align:center;padding:60px 30px;">
+                <div style="width:80px;height:80px;border-radius:50%;background:rgba(14,116,144,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+                    <i class="fas fa-file-contract" style="font-size:2rem;color:var(--primary);"></i>
+                </div>
+                <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:8px;color:var(--text-primary);">Cadastro de Convênios</h2>
+                <span style="display:inline-block;padding:4px 14px;border-radius:20px;background:rgba(245,158,11,.12);color:#92400e;font-size:.78rem;font-weight:600;margin-bottom:16px;">
+                    <i class="fas fa-code" style="margin-right:4px;"></i> Em Desenvolvimento
+                </span>
+                <p style="color:var(--text-secondary);font-size:.92rem;max-width:480px;margin:0 auto 20px;line-height:1.6;">
+                    Este módulo está sendo construído. Estamos entrando em contato com os convênios parceiros para definir os requisitos de validação de pacientes, tabelas de procedimentos e regras de autorização.
+                </p>
+                <div style="background:var(--bg-muted);border-radius:12px;padding:20px;max-width:400px;margin:0 auto;text-align:left;">
+                    <h4 style="font-size:.82rem;font-weight:700;color:var(--primary);margin-bottom:10px;"><i class="fas fa-list-check" style="margin-right:6px;"></i> Funcionalidades previstas</h4>
+                    <ul style="list-style:none;padding:0;margin:0;font-size:.84rem;color:var(--text-secondary);">
+                        <li style="padding:5px 0;border-bottom:1px solid var(--border-color);"><i class="fas fa-check" style="color:var(--accent);margin-right:8px;width:14px;"></i> Cadastro e gestão de convênios</li>
+                        <li style="padding:5px 0;border-bottom:1px solid var(--border-color);"><i class="fas fa-check" style="color:var(--accent);margin-right:8px;width:14px;"></i> Validação de cartão do paciente</li>
+                        <li style="padding:5px 0;border-bottom:1px solid var(--border-color);"><i class="fas fa-check" style="color:var(--accent);margin-right:8px;width:14px;"></i> Tabela de procedimentos cobertos</li>
+                        <li style="padding:5px 0;border-bottom:1px solid var(--border-color);"><i class="fas fa-check" style="color:var(--accent);margin-right:8px;width:14px;"></i> Autorização prévia de procedimentos</li>
+                        <li style="padding:5px 0;"><i class="fas fa-check" style="color:var(--accent);margin-right:8px;width:14px;"></i> Relatórios de faturamento por convênio</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- Modal Confirmar Pré-Agendamento -->
+<div class="modal-overlay" id="confirmarModal" style="display:none;" onclick="if(event.target===this)closeConfirmar()">
+    <div class="modal-box" style="max-width:520px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-clipboard-check" style="color:var(--accent);"></i> Confirmar Pré-Agendamento</h3>
+            <button class="modal-close" onclick="closeConfirmar()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="confirmar_info" style="font-size:.88rem;color:var(--text-secondary);margin-bottom:16px;"></p>
+            <form method="POST" id="confirmar_form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Nome Completo *</label>
+                        <input type="text" name="paciente_nome" id="conf_nome" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-id-card"></i> CPF</label>
+                        <input type="text" name="paciente_cpf" id="conf_cpf" placeholder="000.000.000-00">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-id-badge"></i> RG</label>
+                        <input type="text" name="paciente_rg" id="conf_rg" placeholder="00.000.000-0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-file-invoice-dollar"></i> Tipo de Atendimento</label>
+                        <select name="tipo_atendimento" id="conf_tipo" onchange="toggleConvenioConf(this.value)">
+                            <option value="particular">Particular</option>
+                            <option value="convenio">Convênio</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="conf_conv_group" style="display:none;">
+                        <label><i class="fas fa-hospital"></i> Convênio</label>
+                        <select name="convenio_id" id="conf_convenio">
+                            <option value="">Selecione...</option>
+                            {% for c in convenios %}
+                            <option value="{{ c.id }}">{{ c.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-user-doctor"></i> Médico confirmado</label>
+                        <select name="prof_id" id="conf_prof">
+                            {% for p in profissionais %}
+                            <option value="{{ p.id }}">Dr(a). {{ p.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group" style="max-width:120px;">
+                        <label><i class="fas fa-door-open"></i> Sala</label>
+                        <input type="text" name="sala" id="conf_sala" placeholder="01">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-accent" style="width:100%;margin-top:10px;">
+                    <i class="fas fa-check"></i> Confirmar Agendamento
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Reagendar -->
+<div class="modal-overlay" id="remarcarModal" style="display:none;" onclick="if(event.target===this)closeRemarcar()">
+    <div class="modal-box" style="max-width:440px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-calendar-pen" style="color:var(--primary);"></i> Reagendar</h3>
+            <button class="modal-close" onclick="closeRemarcar()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="remarcar_info" style="font-size:.88rem;color:var(--text-secondary);margin-bottom:18px;"></p>
+            <form method="POST" action="{{ url_for('recepcao_remarcar') }}">
+                <input type="hidden" name="ag_id" id="rem_ag_id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nova Data</label>
+                        <input type="date" name="nova_data" id="rem_data" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Novo Horário</label>
+                        <input type="time" name="nova_hora" id="rem_hora" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;margin-top:10px;">
+                    <i class="fas fa-check"></i> Confirmar Reagendamento
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchTab(tab, btn) {
+    document.querySelectorAll('.recep-panel').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.recep-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + tab).style.display = 'block';
+    btn.classList.add('active');
+}
+function markRead(e) {
+    fetch('/api/notificacoes/ler', {method:'POST'}).then(()=>{
+        const badge = document.querySelector('.notif-badge');
+        if(badge) badge.remove();
+    });
+}
+
+/* ── Confirmar modal ───────────────────────────────────────────── */
+function openConfirmar(agId, nome, cpf, profId) {
+    document.getElementById('confirmar_form').action = '/recepcao/confirmar/' + agId;
+    document.getElementById('conf_nome').value = nome;
+    document.getElementById('conf_cpf').value = cpf || '';
+    document.getElementById('conf_rg').value = '';
+    document.getElementById('conf_tipo').value = 'particular';
+    document.getElementById('conf_conv_group').style.display = 'none';
+    document.getElementById('conf_sala').value = '';
+    // Pre-selecionar médico
+    const profSelect = document.getElementById('conf_prof');
+    for (let opt of profSelect.options) {
+        if (opt.value === profId) { opt.selected = true; break; }
+    }
+    document.getElementById('confirmar_info').textContent = 'Confirme os dados do paciente: ' + nome;
+    document.getElementById('confirmarModal').style.display = 'flex';
+}
+function closeConfirmar() { document.getElementById('confirmarModal').style.display = 'none'; }
+function toggleConvenioConf(v) {
+    document.getElementById('conf_conv_group').style.display = v === 'convenio' ? '' : 'none';
+}
+
+/* ── Walkin convênio toggle ────────────────────────────────────── */
+function toggleConvenioW(v) {
+    document.getElementById('w_conv_group').style.display = v === 'convenio' ? '' : 'none';
+}
+
+/* ── Reagendar modal ───────────────────────────────────────────── */
+function openRemarcar(agId, data, hora, paciente) {
+    document.getElementById('rem_ag_id').value = agId;
+    document.getElementById('rem_data').value = data;
+    document.getElementById('rem_hora').value = hora;
+    document.getElementById('remarcar_info').textContent = 'Paciente: ' + paciente + ' — atual: ' + data.split('-').reverse().join('/') + ' às ' + hora;
+    document.getElementById('remarcarModal').style.display = 'flex';
+}
+function closeRemarcar() {
+    document.getElementById('remarcarModal').style.display = 'none';
+}
+
+/* ── Push para médico individual ───────────────────────────────── */
+function pushMedico(agId, paciente, profId) {
+    if (!confirm('Enviar push para o médico sobre "' + paciente + '"?')) return;
+    fetch('{{ url_for("recepcao_push_medico") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ag_id: agId, prof_id: profId})
+    }).then(r => r.json()).then(d => {
+        if (d.success) alert('Notificação enviada!');
+        else alert(d.error || 'Erro ao enviar.');
+    });
+}
+
+/* ── Push form (aba Notificar) ─────────────────────────────────── */
+function enviarPushForm(e) {
+    e.preventDefault();
+    const fb = document.getElementById('pushFeedback');
+    fb.style.display = 'none';
+
+    fetch('{{ url_for("recepcao_push_custom") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            prof_id: document.getElementById('push_dest').value,
+            titulo: document.getElementById('push_titulo').value,
+            mensagem: document.getElementById('push_msg').value
+        })
+    }).then(r => r.json()).then(d => {
+        fb.style.display = 'block';
+        if (d.success) {
+            fb.className = 'alert alert-success';
+            fb.innerHTML = '<i class="fas fa-check-circle"></i> ' + d.message;
+            document.getElementById('push_titulo').value = '';
+            document.getElementById('push_msg').value = '';
+        } else {
+            fb.className = 'alert alert-error';
+            fb.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + (d.error || 'Erro');
+        }
+    });
+}
+</script>
+{% endblock %}

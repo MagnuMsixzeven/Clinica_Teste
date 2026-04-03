@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Nossa Equipe{% endblock %}
+
+{% block content %}
+<section class="hero" style="padding:60px 0 40px;">
+    <div class="container">
+        <nav class="breadcrumb">
+            <a href="{{ url_for('home') }}">Início</a>
+            <span class="sep"><i class="fas fa-chevron-right"></i></span>
+            <span>Nossa Equipe</span>
+        </nav>
+        <h1 style="font-size:clamp(2rem,4vw,3rem);margin-bottom:12px;">Nossa Equipe</h1>
+        <p style="font-size:1.08rem;color:var(--text-secondary);max-width:600px;">
+            Conheça os profissionais dedicados a cuidar do seu sorriso.
+            Todos registrados no CRO e com formação especializada.
+        </p>
+    </div>
+</section>
+
+<section class="section" style="padding-top:24px;">
+    <div class="container">
+        <div class="team-grid">
+            {% for prof in profissionais %}
+            <div class="team-card">
+                <div class="team-photo">
+                    <img src="{{ prof.foto }}" alt="{{ prof.nome }}">
+                    <div class="team-photo-overlay"></div>
+                    <div class="team-photo-info">
+                        <h3>{{ prof.nome }}</h3>
+                        <span>{{ prof.cro }}</span>
+                    </div>
+                </div>
+                <div class="team-body">
+                    <p>{{ prof.bio }}</p>
+
+                    <div class="team-label">Especialidades</div>
+                    <div class="tag-list">
+                        {% for nome in prof.esp_nomes %}
+                        <span class="tag tag-primary">{{ nome }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <div class="team-label">Horários de Atendimento</div>
+                    <div class="tag-list" style="margin-bottom:20px;">
+                        {% for d in prof.dias.split(',') %}
+                        <span class="tag tag-muted">{{ nomes_dias[d|int] }}</span>
+                        {% endfor %}
+                        <span class="tag tag-muted">{{ prof.horario_inicio }} - {{ prof.horario_fim }}</span>
+                    </div>
+
+                    <a href="{{ url_for('agendar') }}?profissional={{ prof.id }}" class="btn btn-outline btn-full">
+                        <i class="fas fa-calendar"></i> Agendar com {{ prof.nome.split(' ')[0] }}
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

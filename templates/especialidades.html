@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Especialidades{% endblock %}
+
+{% block content %}
+<section class="hero" style="padding:60px 0 40px;">
+    <div class="container">
+        <nav class="breadcrumb">
+            <a href="{{ url_for('home') }}">Início</a>
+            <span class="sep"><i class="fas fa-chevron-right"></i></span>
+            <span>Especialidades</span>
+        </nav>
+        <h1 style="font-size:clamp(2rem,4vw,3rem);margin-bottom:12px;">Nossas Especialidades</h1>
+        <p style="font-size:1.08rem;color:var(--text-secondary);max-width:600px;">
+            Oferecemos uma ampla gama de tratamentos odontológicos para cuidar
+            da sua saúde bucal com excelência e tecnologia de ponta.
+        </p>
+    </div>
+</section>
+
+<section class="section" style="padding-top:24px;">
+    <div class="container">
+        <div class="card-grid">
+            {% for esp in especialidades %}
+            <a href="{{ url_for('agendar') }}?especialidade={{ esp.id }}" class="card" style="display:block;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div class="card-icon"><i class="fas {{ esp.icone }}"></i></div>
+                    <i class="fas fa-chevron-right card-arrow"></i>
+                </div>
+                <h3>{{ esp.nome }}</h3>
+                <p>{{ esp.descricao }}</p>
+                <div class="card-footer">
+                    <div><strong>{{ esp.preco_min|brl }}</strong> - <strong>{{ esp.preco_max|brl }}</strong></div>
+                    <div>~{{ esp.duracao }} min</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section section-muted">
+    <div class="container">
+        <div class="info-cta">
+            <h2>Não encontrou o que procura?</h2>
+            <p>Entre em contato conosco para agendar uma avaliação geral. Nossos profissionais irão identificar o melhor tratamento para você.</p>
+            <a href="{{ url_for('agendar') }}?especialidade=avaliacao" class="btn btn-primary btn-lg">
+                Agendar Avaliação <i class="fas fa-chevron-right" style="margin-left:6px;"></i>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

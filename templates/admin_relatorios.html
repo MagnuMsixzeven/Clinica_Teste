@@ -1,0 +1,192 @@
+{% extends "base_admin.html" %}
+{% block title %}Relatórios{% endblock %}
+{% block page_title %}Relatórios{% endblock %}
+
+{% block content %}
+
+<!-- Filtro de mês -->
+<div class="adm-filters" style="justify-content:space-between;flex-wrap:wrap;">
+    <form method="GET" action="{{ url_for('admin_relatorios') }}" style="display:flex;gap:12px;align-items:center;">
+        <input type="month" name="mes" value="{{ mes_sel }}" style="padding:9px 14px;border-radius:var(--adm-radius-sm);border:1.5px solid var(--adm-border);font-size:.88rem;font-family:inherit;">
+        <button type="submit" class="adm-btn primary" style="padding:9px 18px;"><i class="fas fa-chart-bar"></i> Gerar</button>
+    </form>
+    <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:.82rem;font-weight:600;color:var(--adm-text-sec);"><i class="fas fa-file-excel" style="color:#10B981;margin-right:4px;"></i>Exportar:</span>
+        <a href="{{ url_for('admin_relatorios_excel', periodo='semana', ref=hoje_iso) }}" class="adm-btn" style="font-size:.78rem;padding:7px 14px;background:rgba(16,185,129,.1);color:#047857;border:1.5px solid rgba(16,185,129,.3);">
+            <i class="fas fa-calendar-week"></i> Semana
+        </a>
+        <a href="{{ url_for('admin_relatorios_excel', periodo='mes', ref=mes_sel) }}" class="adm-btn" style="font-size:.78rem;padding:7px 14px;background:rgba(16,185,129,.1);color:#047857;border:1.5px solid rgba(16,185,129,.3);">
+            <i class="fas fa-calendar"></i> Mês
+        </a>
+        <a href="{{ url_for('admin_relatorios_excel', periodo='ano', ref=mes_sel[:4]) }}" class="adm-btn" style="font-size:.78rem;padding:7px 14px;background:rgba(16,185,129,.1);color:#047857;border:1.5px solid rgba(16,185,129,.3);">
+            <i class="fas fa-calendar-days"></i> Ano
+        </a>
+    </div>
+</div>
+
+<!-- Stats do mês -->
+<div class="adm-stats" style="grid-template-columns:repeat(4,1fr);">
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon st-accent"><i class="fas fa-calendar-check"></i></div>
+        <div class="adm-stat-num">{{ stats.total }}</div>
+        <div class="adm-stat-label">Agendamentos</div>
+    </div>
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon st-danger"><i class="fas fa-calendar-xmark"></i></div>
+        <div class="adm-stat-num">{{ stats.cancelados }}</div>
+        <div class="adm-stat-label">Cancelamentos</div>
+    </div>
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon st-primary"><i class="fas fa-percent"></i></div>
+        <div class="adm-stat-num">{{ stats.taxa_cancel }}%</div>
+        <div class="adm-stat-label">Taxa cancel.</div>
+    </div>
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon st-accent"><i class="fas fa-brazilian-real-sign"></i></div>
+        <div class="adm-stat-num">R$ {{ "%.0f"|format(stats.receita) }}</div>
+        <div class="adm-stat-label">Receita</div>
+    </div>
+</div>
+
+<div class="adm-grid-2">
+    <!-- Ranking médicos -->
+    <div class="adm-card">
+        <div class="adm-card-header">
+            <h2><i class="fas fa-ranking-star"></i> Ranking por Médico</h2>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead><tr><th>#</th><th>Profissional</th><th>Atend.</th><th>Mais realizado</th></tr></thead>
+                <tbody>
+                    {% for m in ranking_medicos %}
+                    <tr>
+                        <td>
+                            {% if loop.index == 1 %}<span style="font-size:1.1rem;">🥇</span>
+                            {% elif loop.index == 2 %}<span style="font-size:1.1rem;">🥈</span>
+                            {% elif loop.index == 3 %}<span style="font-size:1.1rem;">🥉</span>
+                            {% else %}{{ loop.index }}{% endif %}
+                        </td>
+                        <td><strong>{{ m.nome }}</strong></td>
+                        <td><span class="adm-badge bg-primary">{{ m.total }}</span></td>
+                        <td>{{ m.top_proc or '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Ranking especialidades -->
+    <div class="adm-card">
+        <div class="adm-card-header">
+            <h2><i class="fas fa-tooth"></i> Procedimentos Mais Realizados</h2>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead><tr><th>Procedimento</th><th>Total</th><th>Convênio</th><th>Particular</th><th></th></tr></thead>
+                <tbody>
+                    {% if ranking_esp %}
+                        {% set totais = ranking_esp|map(attribute='total')|list %}
+                        {% set max_e = totais|max if totais else 1 %}
+                    {% else %}{% set max_e = 1 %}{% endif %}
+                    {% for e in ranking_esp %}
+                    <tr>
+                        <td><strong>{{ e.nome }}</strong></td>
+                        <td>{{ e.total }}</td>
+                        <td>{% if e.convenio %}<span class="adm-badge bg-primary" style="font-size:.72rem;">{{ e.convenio }}</span>{% else %}<span style="color:var(--adm-text-sec);">0</span>{% endif %}</td>
+                        <td>{% if e.particular %}<span class="adm-badge bg-accent" style="font-size:.72rem;">{{ e.particular }}</span>{% else %}<span style="color:var(--adm-text-sec);">0</span>{% endif %}</td>
+                        <td style="width:25%;"><div class="bar-bg"><div class="bar-fill" data-width="{{ (e.total / max_e * 100) if max_e > 0 else 0 }}"></div></div></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Atendimentos por dia do mês (chart simples) -->
+<div class="adm-card">
+    <div class="adm-card-header">
+        <h2><i class="fas fa-chart-line"></i> Atendimentos por Dia</h2>
+    </div>
+    <div style="padding:22px;overflow-x:auto;">
+        <div style="display:flex;align-items:flex-end;gap:3px;height:140px;min-width:600px;">
+            {% for d in por_dia %}
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+                <div style="font-size:.65rem;color:var(--adm-text-sec);font-weight:600;">{{ d.total }}</div>
+                <div data-height="{{ (d.total / max_dia * 100) if max_dia > 0 else 0 }}" class="day-bar" style="width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--adm-primary),var(--adm-accent));min-height:2px;"></div>
+                <div style="font-size:.6rem;color:var(--adm-text-sec);">{{ d.dia }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Análise Financeira: Particular vs Convênio -->
+<div class="adm-card">
+    <div class="adm-card-header">
+        <h2><i class="fas fa-coins"></i> Análise Financeira — Particular vs Convênio</h2>
+    </div>
+    <div style="padding:22px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px;">
+            <!-- Card Particular -->
+            <div style="background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-radius:12px;padding:18px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                    <div style="width:36px;height:36px;border-radius:50%;background:#43a047;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.9rem;"><i class="fas fa-user"></i></div>
+                    <div>
+                        <div style="font-size:.75rem;color:#2e7d32;text-transform:uppercase;font-weight:700;">Particular</div>
+                        <div style="font-size:1.3rem;font-weight:800;color:#1b5e20;">R$ {{ "%.0f"|format(receita_particular.receita) }}</div>
+                    </div>
+                </div>
+                <div style="font-size:.82rem;color:#388e3c;">{{ receita_particular.qtd }} atendimento{{ 's' if receita_particular.qtd != 1 else '' }}</div>
+            </div>
+            <!-- Card Convênios -->
+            <div style="background:linear-gradient(135deg,#e3f2fd,#bbdefb);border-radius:12px;padding:18px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                    <div style="width:36px;height:36px;border-radius:50%;background:#1e88e5;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.9rem;"><i class="fas fa-building"></i></div>
+                    <div>
+                        <div style="font-size:.75rem;color:#1565c0;text-transform:uppercase;font-weight:700;">Convênios</div>
+                        {% set total_conv_receita = fin_convenio|sum(attribute='receita') %}
+                        {% set total_conv_qtd = fin_convenio|sum(attribute='qtd') %}
+                        <div style="font-size:1.3rem;font-weight:800;color:#0d47a1;">R$ {{ "%.0f"|format(total_conv_receita) }}</div>
+                    </div>
+                </div>
+                <div style="font-size:.82rem;color:#1976d2;">{{ total_conv_qtd }} atendimento{{ 's' if total_conv_qtd != 1 else '' }}</div>
+            </div>
+        </div>
+
+        {% if fin_convenio %}
+        <!-- Detalhamento por convênio -->
+        <h3 style="font-size:.9rem;font-weight:700;margin-bottom:12px;color:var(--adm-text);"><i class="fas fa-list" style="margin-right:6px;opacity:.5;"></i>Detalhamento por Convênio</h3>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead><tr><th>Convênio</th><th>Atendimentos</th><th>Receita</th><th></th></tr></thead>
+                <tbody>
+                    {% set max_conv = fin_convenio|map(attribute='qtd')|list|max if fin_convenio else 1 %}
+                    {% for c in fin_convenio %}
+                    <tr>
+                        <td><strong>{{ c.convenio }}</strong></td>
+                        <td><span class="adm-badge bg-primary">{{ c.qtd }}</span></td>
+                        <td style="font-weight:600;">R$ {{ "%.0f"|format(c.receita) }}</td>
+                        <td style="width:30%;"><div class="bar-bg"><div class="bar-fill" data-width="{{ (c.qtd / max_conv * 100) if max_conv > 0 else 0 }}"></div></div></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align:center;color:var(--adm-text-sec);padding:16px;font-size:.88rem;">
+            <i class="fas fa-info-circle" style="margin-right:6px;"></i>Nenhum atendimento por convênio neste período
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.bar-fill[data-width]').forEach(el => { el.style.width = el.dataset.width + '%'; });
+document.querySelectorAll('.day-bar[data-height]').forEach(el => { el.style.height = el.dataset.height + '%'; });
+</script>
+{% endblock %}

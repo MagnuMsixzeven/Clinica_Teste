@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block title %}Agendar Consulta{% endblock %}
+
+{% block content %}
+<section class="section" style="padding-top:40px;background:var(--bg-muted);min-height:calc(100vh - 68px);">
+    <div class="container" style="max-width:860px;">
+
+        <nav class="breadcrumb">
+            <a href="{{ url_for('home') }}">Início</a>
+            <span class="sep"><i class="fas fa-chevron-right"></i></span>
+            <span>Agendar Consulta</span>
+        </nav>
+
+        <!-- Steps bar – 6 etapas -->
+        <div class="steps-bar" id="steps-bar">
+            <div class="step-item"><div class="step-circle current" data-step="1">1</div><span class="step-label current">Procedimento</span></div>
+            <div class="step-line" data-line="1"></div>
+            <div class="step-item"><div class="step-circle" data-step="2">2</div><span class="step-label">Profissional</span></div>
+            <div class="step-line" data-line="2"></div>
+            <div class="step-item"><div class="step-circle" data-step="3">3</div><span class="step-label">Data/Hora</span></div>
+            <div class="step-line" data-line="3"></div>
+            <div class="step-item"><div class="step-circle" data-step="4">4</div><span class="step-label">Anamnese</span></div>
+            <div class="step-line" data-line="4"></div>
+            <div class="step-item"><div class="step-circle" data-step="5">5</div><span class="step-label">Dados</span></div>
+            <div class="step-line" data-line="5"></div>
+            <div class="step-item"><div class="step-circle" data-step="6">6</div><span class="step-label">Confirmado</span></div>
+        </div>
+
+        <div class="booking-panel">
+
+            <!-- ════ STEP 1: Especialidade ════ -->
+            <div id="step-1" class="step-content">
+                <h1>Qual procedimento você precisa?</h1>
+                <p>Selecione o tipo de atendimento desejado</p>
+                <div class="option-list">
+                    {% for esp in especialidades %}
+                    <button class="option-btn" onclick="selectSpecialty('{{ esp.id }}', '{{ esp.nome }}', '{{ esp.icone }}')">
+                        <div class="opt-head">
+                            <div class="opt-icon"><i class="fas {{ esp.icone }}"></i></div>
+                            <div>
+                                <h3>{{ esp.nome }}</h3>
+                                <p>{{ esp.descricao }}</p>
+                                <div class="opt-meta">
+                                    <span>{{ esp.preco_min|brl }} – {{ esp.preco_max|brl }}</span>
+                                    <span>•</span>
+                                    <span>~{{ esp.duracao }} min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- ════ STEP 2: Profissional ════ -->
+            <div id="step-2" class="step-content" style="display:none;">
+                <button class="back-link" onclick="goBack(1)"><i class="fas fa-arrow-left"></i> Voltar</button>
+                <div class="booking-selected" id="selected-specialty-box">
+                    <i class="fas fa-sparkles"></i>
+                    <div><div class="label">Procedimento selecionado</div><div class="value" id="selected-specialty-name">—</div></div>
+                </div>
+                <h2>Escolha o profissional</h2>
+                <p id="prof-count">Carregando profissionais...</p>
+                <div class="prof-list" id="prof-list"></div>
+            </div>
+
+            <!-- ════ STEP 3: Data / Hora (calendário real) ════ -->
+            <div id="step-3" class="step-content" style="display:none;">
+                <button class="back-link" onclick="goBack(2)"><i class="fas fa-arrow-left"></i> Voltar</button>
+                <div class="booking-selected">
+                    <img id="selected-prof-img" src="" alt="" style="width:48px;height:48px;border-radius:12px;object-fit:cover;">
+                    <div><div class="label">Profissional selecionado</div><div class="value" id="selected-prof-name">—</div></div>
+                </div>
+
+                <h2>Escolha a data e horário</h2>
+                <p>Selecione o melhor dia e horário para sua consulta</p>
+
+                <div class="calendar-wrapper">
+                    <div class="cal-nav">
+                        <button onclick="prevMonth()" class="cal-nav-btn"><i class="fas fa-chevron-left"></i></button>
+                        <span id="calendar-month-label" class="cal-month-label"></span>
+                        <button onclick="nextMonth()" class="cal-nav-btn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div id="calendar-grid"></div>
+                </div>
+
+                <div id="slots-container" style="margin-top:24px;"></div>
+
+                <button id="btn-continue-datetime" class="btn btn-primary btn-lg btn-full" style="display:none;margin-top:24px;" onclick="continueToAnamnese()">
+                    Continuar <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- ════ STEP 4: Anamnese ════ -->
+            <div id="step-4" class="step-content" style="display:none;">
+                <button class="back-link" onclick="goBack(3)"><i class="fas fa-arrow-left"></i> Voltar</button>
+
+                <h2><i class="fas fa-notes-medical" style="color:var(--primary);margin-right:8px;"></i>Ficha de Anamnese</h2>
+                <p style="margin-bottom:24px;">Preencha as informações para que o profissional possa atendê-lo(a) melhor. <strong>Opcional</strong> – você pode pular esta etapa.</p>
+
+                <form id="anamnese-form" class="form-grid">
+                    <div class="form-group full">
+                        <label>Você possui alguma alergia?</label>
+                        <input type="text" name="alergias" placeholder="Ex: Penicilina, Látex, nenhuma…">
+                    </div>
+                    <div class="form-group full">
+                        <label>Medicamentos em uso</label>
+                        <input type="text" name="medicamentos" placeholder="Ex: Losartana 50mg, nenhum…">
+                    </div>
+                    <div class="form-group">
+                        <label class="check-label"><input type="checkbox" name="gestante"> Está gestante?</label>
+                    </div>
+                    <div class="form-group">
+                        <label class="check-label"><input type="checkbox" name="diabetico"> Diabético(a)?</label>
+                    </div>
+                    <div class="form-group">
+                        <label class="check-label"><input type="checkbox" name="hipertenso"> Hipertenso(a)?</label>
+                    </div>
+                    <div class="form-group">
+                        <label class="check-label"><input type="checkbox" name="cardiopata"> Cardiopata?</label>
+                    </div>
+                    <div class="form-group full">
+                        <label>Doenças pré-existentes</label>
+                        <textarea name="doencas" rows="2" placeholder="Descreva, se houver…"></textarea>
+                    </div>
+                    <div class="form-group full">
+                        <label>Observações / Queixa principal</label>
+                        <textarea name="queixa" rows="2" placeholder="Descreva o motivo da consulta ou dúvidas…"></textarea>
+                    </div>
+
+                    <!-- Upload de anexos -->
+                    <div class="form-group full">
+                        <label><i class="fas fa-paperclip" style="margin-right:4px;"></i>Anexar Exames ou Prescrições</label>
+                        <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:8px;">PDF, imagens ou documentos (máx. 10 MB cada)</p>
+                        <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+                            <input type="file" id="file-input" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx" style="display:none" onchange="handleFiles(this.files)">
+                            <div class="upload-icon"><i class="fas fa-cloud-arrow-up"></i></div>
+                            <p><strong>Clique para selecionar</strong> ou arraste arquivos aqui</p>
+                            <span>PDF, PNG, JPG, DOC – até 10 MB</span>
+                        </div>
+                        <div id="file-list" class="file-list"></div>
+                    </div>
+                </form>
+
+                <div style="display:flex;gap:14px;margin-top:28px;">
+                    <button class="btn btn-outline btn-lg" style="flex:1;" onclick="skipAnamnese()">Pular</button>
+                    <button class="btn btn-primary btn-lg" style="flex:2;" onclick="continueToPayment()">Continuar <i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+
+            <!-- ════ STEP 5: Dados pessoais + Pagamento ════ -->
+            <div id="step-5" class="step-content" style="display:none;">
+                <button class="back-link" onclick="goBack(4)"><i class="fas fa-arrow-left"></i> Voltar</button>
+
+                <h2><i class="fas fa-user" style="color:var(--primary);margin-right:8px;"></i>Seus Dados</h2>
+                <p style="margin-bottom:24px;">Preencha seus dados para finalizar o agendamento</p>
+
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label>Nome completo *</label>
+                        <input type="text" id="pac-nome" placeholder="Seu nome completo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Telefone / WhatsApp *</label>
+                        <input type="tel" id="pac-telefone" placeholder="(11) 99999-0000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>CPF</label>
+                        <input type="text" id="pac-cpf" placeholder="000.000.000-00">
+                    </div>
+                    <div class="form-group full">
+                        <label>E-mail</label>
+                        <input type="email" id="pac-email" placeholder="seu@email.com">
+                    </div>
+                    <div class="form-group full">
+                        <label>Observações adicionais</label>
+                        <textarea id="pac-obs" rows="2" placeholder="Algo que gostaria de informar…"></textarea>
+                    </div>
+                </div>
+
+                <!-- Pagamento (condicional) -->
+                <div id="payment-section" style="margin-top:32px;display:none;">
+                    <h3 style="font-size:1.1rem;margin-bottom:12px;"><i class="fas fa-credit-card" style="color:var(--accent);margin-right:6px;"></i>Pagamento Antecipado</h3>
+                    <p id="payment-info" style="color:var(--text-secondary);margin-bottom:18px;font-size:.92rem;"></p>
+
+                    <div class="payment-options">
+                        <label class="payment-option">
+                            <input type="radio" name="pagamento_tipo" value="pix" checked>
+                            <div class="po-content">
+                                <i class="fas fa-qrcode"></i>
+                                <div><strong>Pix</strong><span>Aprovação imediata</span></div>
+                            </div>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="pagamento_tipo" value="cartao">
+                            <div class="po-content">
+                                <i class="fas fa-credit-card"></i>
+                                <div><strong>Cartão</strong><span>Crédito ou Débito</span></div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <button id="btn-confirmar" class="btn btn-primary btn-lg btn-full" style="margin-top:32px;" onclick="submitBooking()">
+                    <i class="fas fa-check"></i> Confirmar Agendamento
+                </button>
+            </div>
+
+            <!-- ════ STEP 6: Confirmação ════ -->
+            <div id="step-6" class="step-content" style="display:none;">
+                <div style="text-align:center;padding:24px 0;">
+                    <div class="success-icon-ring">
+                        <i class="fas fa-check" style="font-size:2rem;color:var(--accent);"></i>
+                    </div>
+                    <h2 style="margin-top:20px;">Agendamento Confirmado!</h2>
+                    <p style="color:var(--text-secondary);max-width:440px;margin:8px auto 28px;">
+                        Seu atendimento foi agendado com sucesso. Você receberá lembretes antes da consulta.
+                    </p>
+
+                    <div class="summary-box" style="text-align:left;">
+                        <h3 style="font-size:1rem;margin-bottom:16px;">Resumo</h3>
+                        <div class="summary-row"><span class="label">Código</span><span class="value" id="conf-id">—</span></div>
+                        <div class="summary-row"><span class="label">Procedimento</span><span class="value" id="conf-esp">—</span></div>
+                        <div class="summary-row"><span class="label">Profissional</span><span class="value" id="conf-prof">—</span></div>
+                        <div class="summary-row"><span class="label">Data</span><span class="value" id="conf-data">—</span></div>
+                        <div class="summary-row"><span class="label">Horário</span><span class="value" id="conf-hora">—</span></div>
+                        <div class="summary-row"><span class="label">Paciente</span><span class="value" id="conf-paciente">—</span></div>
+                        <div class="summary-row"><span class="label">Pagamento</span><span class="value" id="conf-pagamento">—</span></div>
+                    </div>
+
+                    <div id="payment-instructions" style="display:none;margin-bottom:28px;">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <span>O pagamento será realizado na clínica ou conforme orientação da recepção.</span>
+                        </div>
+                    </div>
+
+                    <a href="{{ url_for('home') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-home"></i> Voltar ao Início
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/agendar.js') }}"></script>
+<script>
+    // Mostrar seção de pagamento se a especialidade exigir
+    document.addEventListener('DOMContentLoaded', function() {
+        const observer = new MutationObserver(function() {
+            const sec = document.getElementById('payment-section');
+            const info = document.getElementById('payment-info');
+            if (state && state.requerPagamento && state.requerPagamento !== 'nenhum') {
+                sec.style.display = 'block';
+                const tipo = state.requerPagamento === 'sinal' ? 'Sinal' : 'Valor integral';
+                info.textContent = tipo + ' de R$ ' + state.valorSinal.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' necessário para confirmar.';
+            } else {
+                sec.style.display = 'none';
+            }
+        });
+        const step5 = document.getElementById('step-5');
+        if (step5) observer.observe(step5, {attributes: true, attributeFilter: ['style']});
+    });
+
+    // deep-link ?especialidade=
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        const espId = params.get('especialidade');
+        if (espId) {
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                const oc = btn.getAttribute('onclick');
+                if (oc && oc.includes("'" + espId + "'")) btn.click();
+            });
+        }
+    })();
+</script>
+{% endblock %}
