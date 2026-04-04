@@ -99,7 +99,7 @@
                             </button>
                             <button class="btn btn-sm btn-outline-primary" title="Reagendar"
                                     onclick="openRemarcar({{ ag.id }}, '{{ ag.data }}', '{{ ag.hora }}', '{{ ag.paciente_nome }}')">
-                                <i class="fas fa-calendar-pen"></i>
+                                <i class="fas fa-arrows-rotate"></i> Reagendar
                             </button>
                             <form method="POST" action="{{ url_for('recepcao_cancelar', ag_id=ag.id) }}" style="display:inline;">
                                 <button type="submit" class="btn-icon-danger" title="Cancelar" onclick="return confirm('Cancelar este agendamento?')">
@@ -154,7 +154,7 @@
                             {% endif %}
                             <button class="btn btn-sm btn-outline-primary" title="Reagendar"
                                     onclick="openRemarcar({{ ag.id }}, '{{ ag.data }}', '{{ ag.hora }}', '{{ ag.paciente_nome }}')">
-                                <i class="fas fa-calendar-pen"></i>
+                                <i class="fas fa-arrows-rotate"></i> Reagendar
                             </button>
                             <form method="POST" action="{{ url_for('recepcao_cancelar', ag_id=ag.id) }}" style="display:inline;">
                                 <button type="submit" class="btn-icon-danger" title="Cancelar" onclick="return confirm('Cancelar este agendamento?')">
@@ -192,13 +192,13 @@
                         </div>
                         <div class="form-group">
                             <label for="w_tel"><i class="fas fa-phone"></i> Telefone</label>
-                            <input type="tel" id="w_tel" name="paciente_telefone" placeholder="(11) 99999-9999">
+                            <input type="tel" id="w_tel" name="paciente_telefone" placeholder="(11) 99999-9999" maxlength="15" oninput="maskTel(this)">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="w_cpf"><i class="fas fa-id-card"></i> CPF</label>
-                            <input type="text" id="w_cpf" name="paciente_cpf" placeholder="000.000.000-00">
+                            <input type="text" id="w_cpf" name="paciente_cpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)">
                         </div>
                         <div class="form-group">
                             <label for="w_rg"><i class="fas fa-id-badge"></i> RG</label>
@@ -348,7 +348,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label><i class="fas fa-id-card"></i> CPF</label>
-                        <input type="text" name="paciente_cpf" id="conf_cpf" placeholder="000.000.000-00">
+                        <input type="text" name="paciente_cpf" id="conf_cpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)">
                     </div>
                     <div class="form-group">
                         <label><i class="fas fa-id-badge"></i> RG</label>
@@ -399,7 +399,7 @@
 <div class="modal-overlay" id="remarcarModal" style="display:none;" onclick="if(event.target===this)closeRemarcar()">
     <div class="modal-box" style="max-width:440px;">
         <div class="modal-header">
-            <h3><i class="fas fa-calendar-pen" style="color:var(--primary);"></i> Reagendar</h3>
+            <h3><i class="fas fa-arrows-rotate" style="color:var(--primary);"></i> Reagendar</h3>
             <button class="modal-close" onclick="closeRemarcar()">&times;</button>
         </div>
         <div class="modal-body">
@@ -427,6 +427,20 @@
 
 {% block scripts %}
 <script>
+function maskCPF(el) {
+    let v = el.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+    else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+    else if (v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+    el.value = v;
+}
+function maskTel(el) {
+    let v = el.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 6) v = v.replace(/(\d{2})(\d{5})(\d{1,4})/, '($1) $2-$3');
+    else if (v.length > 2) v = v.replace(/(\d{2})(\d{1,5})/, '($1) $2');
+    el.value = v;
+}
+
 function switchTab(tab, btn) {
     document.querySelectorAll('.recep-panel').forEach(p => p.style.display = 'none');
     document.querySelectorAll('.recep-tab').forEach(t => t.classList.remove('active'));

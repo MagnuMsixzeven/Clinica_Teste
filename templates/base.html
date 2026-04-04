@@ -14,8 +14,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-    .header-panel-btn{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:var(--primary);color:#fff;font-size:1rem;transition:all .2s;text-decoration:none;}
-    .header-panel-btn:hover{background:var(--primary-dark,#0a7c8c);transform:rotate(90deg);}
+    .header-panel-btn{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;font-size:1rem;transition:all .3s cubic-bezier(.4,0,.2,1);text-decoration:none;box-shadow:0 4px 12px rgba(8,145,178,.25);}
+    .header-panel-btn:hover{transform:rotate(90deg) scale(1.08);box-shadow:0 6px 20px rgba(8,145,178,.35);}
     </style>
     {% block head %}{% endblock %}
 </head>
