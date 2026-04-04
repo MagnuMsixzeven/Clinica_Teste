@@ -1,0 +1,70 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "nome": "Pão Francês",
+      "preco": 8.5,
+      "quantidade": 250,
+      "estoque_minimo": 50,
+      "categoria": "Padaria"
+    },
+    {
+      "id": 2,
+      "nome": "Leite Integral 1L",
+      "preco": 5.2,
+      "quantidade": 15,
+      "estoque_minimo": 30,
+      "categoria": "Laticínios"
+    },
+    {
+      "id": 3,
+      "nome": "Arroz 5kg",
+      "preco": 25.0,
+      "quantidade": 42,
+      "estoque_minimo": 20,
+      "categoria": "Alimentos"
+    },
+    {
+      "id": 4,
+      "nome": "Feijão 1kg",
+      "preco": 8.5,
+      "quantidade": 0,
+      "estoque_minimo": 15,
+      "categoria": "Alimentos"
+    }
+  ],
+  "caixas": [
+    {
+      "id": 1,
+      "nome": "Caixa 1",
+      "operador": "carlos",
+      "status": "aberto",
+      "abertura": "23:03",
+      "total_vendido": 0.0,
+      "transacoes": 0,
+      "valor_inicial": 1.0
+    },
+    {
+      "id": 2,
+      "nome": "Caixa 2",
+      "operador": "",
+      "status": "fechado",
+      "abertura": null,
+      "total_vendido": 0.0,
+      "transacoes": 0,
+      "valor_inicial": 200.0
+    },
+    {
+      "id": 3,
+      "nome": "Caixa 3",
+      "operador": "",
+      "status": "fechado",
+      "abertura": null,
+      "total_vendido": 0.0,
+      "transacoes": 0,
+      "valor_inicial": 0.0
+    }
+  ],
+  "vendas": [],
+  "vendas_espera": []
+}
