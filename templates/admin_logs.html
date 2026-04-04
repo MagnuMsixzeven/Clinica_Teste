@@ -4,6 +4,88 @@
 
 {% block content %}
 
+<!-- Painel Quem Está Online + Últimos Acessos -->
+<div class="logs-online-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+    <!-- Usuários Online Agora -->
+    <div class="adm-card" style="overflow:hidden;">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--adm-border);display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-circle" style="color:#10b981;font-size:.55rem;animation:pulse-online 2s infinite;"></i>
+            <strong style="font-size:.85rem;">Online Agora</strong>
+            <span style="margin-left:auto;background:rgba(16,185,129,.12);color:#10b981;font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:10px;">{{ usuarios_online|length }}</span>
+        </div>
+        <div style="padding:0;max-height:200px;overflow-y:auto;">
+            {% if usuarios_online %}
+                {% for u in usuarios_online %}
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--adm-border);font-size:.82rem;" {% if not loop.last %}{% endif %}>
+                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:700;flex-shrink:0;">{{ u.nome[:2]|upper }}</div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;color:var(--adm-text);font-size:.82rem;">{{ u.nome }}</div>
+                    </div>
+                    <span class="adm-badge" style="font-size:.62rem;padding:2px 7px;
+                        {% if u.papel == 'admin' %}background:rgba(99,102,241,.12);color:#6366f1;
+                        {% elif u.papel == 'medico' %}background:rgba(16,185,129,.12);color:#059669;
+                        {% elif u.papel == 'recepcionista' %}background:rgba(245,158,11,.12);color:#d97706;
+                        {% elif u.papel == 'enfermeira' %}background:rgba(236,72,153,.12);color:#db2777;
+                        {% else %}background:rgba(107,114,128,.12);color:#6b7280;{% endif %}">{{ u.papel }}</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align:center;padding:30px;color:var(--adm-text-sec);font-size:.82rem;">
+                    <i class="fas fa-user-clock" style="font-size:1.4rem;display:block;margin-bottom:8px;opacity:.3;"></i>
+                    Nenhum usuário online
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Últimos Acessos -->
+    <div class="adm-card" style="overflow:hidden;">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--adm-border);display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-clock-rotate-left" style="color:#6366f1;font-size:.8rem;"></i>
+            <strong style="font-size:.85rem;">Últimos Acessos</strong>
+        </div>
+        <div style="padding:0;max-height:200px;overflow-y:auto;">
+            {% if ultimos_acessos %}
+                {% for u in ultimos_acessos %}
+                {% set minutos_atras = ((now_ts|default(0)) - 0) %}
+                <div style="display:flex;align-items:center;gap:10px;padding:9px 20px;border-bottom:1px solid var(--adm-border);font-size:.8rem;">
+                    <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;
+                        {% set online_nomes = usuarios_online|map(attribute='nome')|list %}
+                        {% if u.nome in online_nomes %}background:#10b981;{% else %}background:#94a3b8;{% endif %}"></div>
+                    <div style="flex:1;font-weight:500;color:var(--adm-text);">{{ u.nome }}</div>
+                    <span class="adm-badge" style="font-size:.6rem;padding:1px 6px;
+                        {% if u.papel == 'admin' %}background:rgba(99,102,241,.12);color:#6366f1;
+                        {% elif u.papel == 'medico' %}background:rgba(16,185,129,.12);color:#059669;
+                        {% elif u.papel == 'recepcionista' %}background:rgba(245,158,11,.12);color:#d97706;
+                        {% elif u.papel == 'enfermeira' %}background:rgba(236,72,153,.12);color:#db2777;
+                        {% else %}background:rgba(107,114,128,.12);color:#6b7280;{% endif %}">{{ u.papel }}</span>
+                    <span style="font-size:.7rem;color:var(--adm-text-sec);white-space:nowrap;">
+                        <i class="fas fa-clock"></i>
+                        {{ u.ultimo_acesso[11:16] if u.ultimo_acesso else '—' }}
+                        <span style="opacity:.5;">{{ u.ultimo_acesso[8:10] }}/{{ u.ultimo_acesso[5:7] }}</span>
+                    </span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align:center;padding:30px;color:var(--adm-text-sec);font-size:.82rem;">
+                    <i class="fas fa-inbox" style="font-size:1.4rem;display:block;margin-bottom:8px;opacity:.3;"></i>
+                    Nenhum acesso registrado
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes pulse-online {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .35; }
+}
+@media (max-width: 700px) {
+    .logs-online-grid { grid-template-columns: 1fr !important; }
+}
+</style>
+
 <!-- Stats -->
 <div class="adm-stats" style="grid-template-columns:repeat(5,1fr);">
     <div class="adm-stat-card">

@@ -53,6 +53,7 @@ def init_db():
             notif_whatsapp INTEGER DEFAULT 0,
             email TEXT,
             telefone TEXT,
+            ultimo_acesso TEXT,
             criado_em TEXT DEFAULT (datetime('now','localtime')),
             FOREIGN KEY (prof_id) REFERENCES profissionais(id)
         );
@@ -601,6 +602,37 @@ def registrar_log(acao, detalhes='', nivel='info', conn=None):
     if fechar:
         conn.commit()
         conn.close()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MIGRAÇÃO – adiciona coluna ultimo_acesso se não existir
+# ═══════════════════════════════════════════════════════════════════════════════
+def _migrate_ultimo_acesso():
+    conn = get_db()
+    cols = [r['name'] for r in conn.execute("PRAGMA table_info(usuarios)").fetchall()]
+    if 'ultimo_acesso' not in cols:
+        conn.execute("ALTER TABLE usuarios ADD COLUMN ultimo_acesso TEXT")
+        conn.commit()
+    conn.close()
+
+with app.app_context():
+    _migrate_ultimo_acesso()
+
+
+@app.before_request
+def atualizar_ultimo_acesso():
+    uid = session.get('user_id')
+    if uid and request.endpoint and not request.endpoint.startswith('static'):
+        try:
+            conn = get_db()
+            conn.execute(
+                "UPDATE usuarios SET ultimo_acesso = datetime('now','localtime') WHERE id = ?",
+                (uid,)
+            )
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2581,9 +2613,21 @@ def admin_logs():
         ).fetchone()[0]
     stats['total'] = sum(stats.values())
 
+    # Usuários online (último acesso nos últimos 5 minutos)
+    usuarios_online = conn.execute(
+        "SELECT nome, papel, ultimo_acesso FROM usuarios WHERE ultimo_acesso IS NOT NULL AND ultimo_acesso >= datetime('now','localtime','-5 minutes') ORDER BY ultimo_acesso DESC"
+    ).fetchall()
+
+    # Últimos acessos (todos os usuários com acesso registrado)
+    ultimos_acessos = conn.execute(
+        "SELECT nome, papel, ultimo_acesso FROM usuarios WHERE ultimo_acesso IS NOT NULL ORDER BY ultimo_acesso DESC LIMIT 10"
+    ).fetchall()
+
     conn.close()
     return render_template("admin_logs.html",
         logs=[dict(l) for l in logs], stats=stats,
+        usuarios_online=[dict(u) for u in usuarios_online],
+        ultimos_acessos=[dict(u) for u in ultimos_acessos],
         filtro_nivel=filtro_nivel, filtro_busca=filtro_busca, filtro_papel=filtro_papel,
         nao_lidas=_admin_nao_lidas(get_db()), user=_admin_user())
 
