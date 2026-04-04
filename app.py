@@ -1761,24 +1761,6 @@ def admin_relatorios():
 
     stats = {"total": total, "cancelados": cancelados, "taxa_cancel": taxa_cancel, "receita": receita}
 
-    # Ranking médicos com procedimento mais realizado
-    ranking_medicos = []
-    profs = conn.execute("""
-        SELECT p.nome, COUNT(a.id) as total
-        FROM profissionais p
-        LEFT JOIN agendamentos a ON p.id = a.prof_id AND a.data LIKE ? AND a.status != 'cancelado'
-        WHERE p.ativo=1 GROUP BY p.id ORDER BY total DESC
-    """, (mes_like,)).fetchall()
-    for p in profs:
-        top = conn.execute("""
-            SELECT e.nome FROM agendamentos a
-            JOIN especialidades e ON a.esp_id = e.id
-            JOIN profissionais pr ON a.prof_id = pr.id
-            WHERE pr.nome=? AND a.data LIKE ? AND a.status != 'cancelado'
-            GROUP BY e.id ORDER BY COUNT(*) DESC LIMIT 1
-        """, (p["nome"], mes_like)).fetchone()
-        ranking_medicos.append({"nome": p["nome"], "total": p["total"], "top_proc": top["nome"] if top else None})
-
     ranking_esp = conn.execute("""
         SELECT e.nome, COUNT(a.id) as total,
                SUM(CASE WHEN a.tipo_atendimento='convenio' THEN 1 ELSE 0 END) as convenio,
@@ -1838,7 +1820,6 @@ def admin_relatorios():
     conn.close()
     return render_template("admin_relatorios.html",
         mes_sel=mes_sel, stats=stats,
-        ranking_medicos=ranking_medicos,
         ranking_esp=[dict(r) for r in ranking_esp],
         por_dia=por_dia, max_dia=max_dia,
         fin_tipo=fin_tipo, fin_convenio=fin_convenio,

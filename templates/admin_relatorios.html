@@ -49,30 +49,69 @@
 </div>
 
 <div class="adm-grid-2">
-    <!-- Ranking médicos -->
+    <!-- Faturamento: Convênio vs Particular -->
     <div class="adm-card">
         <div class="adm-card-header">
-            <h2><i class="fas fa-ranking-star"></i> Ranking por Médico</h2>
+            <h2><i class="fas fa-coins"></i> Faturamento — Convênio vs Particular</h2>
         </div>
-        <div class="adm-table-wrap">
-            <table class="adm-table">
-                <thead><tr><th>#</th><th>Profissional</th><th>Atend.</th><th>Mais realizado</th></tr></thead>
-                <tbody>
-                    {% for m in ranking_medicos %}
-                    <tr>
-                        <td>
-                            {% if loop.index == 1 %}<span style="font-size:1.1rem;">🥇</span>
-                            {% elif loop.index == 2 %}<span style="font-size:1.1rem;">🥈</span>
-                            {% elif loop.index == 3 %}<span style="font-size:1.1rem;">🥉</span>
-                            {% else %}{{ loop.index }}{% endif %}
-                        </td>
-                        <td><strong>{{ m.nome }}</strong></td>
-                        <td><span class="adm-badge bg-primary">{{ m.total }}</span></td>
-                        <td>{{ m.top_proc or '—' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+            {% set total_conv_rec = fin_convenio|sum(attribute='receita') %}
+            {% set total_conv_qtd = fin_convenio|sum(attribute='qtd') %}
+            {% set rec_part = receita_particular.receita %}
+            {% set qtd_part = receita_particular.qtd %}
+            {% set total_geral_rec = rec_part + total_conv_rec %}
+
+            <!-- Barra proporcional -->
+            <div style="display:flex;border-radius:10px;overflow:hidden;height:28px;background:var(--adm-border);">
+                {% if total_geral_rec > 0 %}
+                <div style="width:{{ (rec_part / total_geral_rec * 100)|round(1) }}%;background:linear-gradient(90deg,#10b981,#34d399);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:700;min-width:{% if rec_part > 0 %}28px{% else %}0{% endif %};">
+                    {% if rec_part / total_geral_rec > 0.12 %}{{ (rec_part / total_geral_rec * 100)|round(0)|int }}%{% endif %}
+                </div>
+                <div style="width:{{ (total_conv_rec / total_geral_rec * 100)|round(1) }}%;background:linear-gradient(90deg,#3b82f6,#60a5fa);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:700;min-width:{% if total_conv_rec > 0 %}28px{% else %}0{% endif %};">
+                    {% if total_conv_rec / total_geral_rec > 0.12 %}{{ (total_conv_rec / total_geral_rec * 100)|round(0)|int }}%{% endif %}
+                </div>
+                {% else %}
+                <div style="width:100%;display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--adm-text-sec);">Sem dados</div>
+                {% endif %}
+            </div>
+
+            <!-- Cards lado a lado -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-radius:12px;padding:16px;border-left:4px solid #10b981;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <i class="fas fa-user" style="color:#059669;font-size:.9rem;"></i>
+                        <span style="font-size:.75rem;font-weight:700;color:#047857;text-transform:uppercase;">Particular</span>
+                    </div>
+                    <div style="font-size:1.25rem;font-weight:800;color:#065f46;">R$ {{ "%.0f"|format(rec_part) }}</div>
+                    <div style="font-size:.78rem;color:#059669;margin-top:4px;">{{ qtd_part }} atendimento{{ 's' if qtd_part != 1 else '' }}</div>
+                </div>
+                <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-radius:12px;padding:16px;border-left:4px solid #3b82f6;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <i class="fas fa-building" style="color:#2563eb;font-size:.9rem;"></i>
+                        <span style="font-size:.75rem;font-weight:700;color:#1d4ed8;text-transform:uppercase;">Convênios</span>
+                    </div>
+                    <div style="font-size:1.25rem;font-weight:800;color:#1e3a5f;">R$ {{ "%.0f"|format(total_conv_rec) }}</div>
+                    <div style="font-size:.78rem;color:#2563eb;margin-top:4px;">{{ total_conv_qtd }} atendimento{{ 's' if total_conv_qtd != 1 else '' }}</div>
+                </div>
+            </div>
+
+            <!-- Lista de convênios -->
+            {% if fin_convenio %}
+            <div style="margin-top:4px;">
+                <div style="font-size:.78rem;font-weight:600;color:var(--adm-text-sec);margin-bottom:8px;"><i class="fas fa-list" style="margin-right:4px;opacity:.5;"></i>Por convênio</div>
+                {% set max_conv_q = fin_convenio|map(attribute='qtd')|list|max if fin_convenio else 1 %}
+                {% for c in fin_convenio %}
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;{% if not loop.last %}border-bottom:1px solid var(--adm-border);{% endif %}">
+                    <span style="flex:1;font-size:.84rem;font-weight:600;">{{ c.convenio }}</span>
+                    <span class="adm-badge bg-primary" style="font-size:.72rem;">{{ c.qtd }}</span>
+                    <span style="font-size:.82rem;font-weight:600;color:var(--adm-text);min-width:80px;text-align:right;">R$ {{ "%.0f"|format(c.receita) }}</span>
+                    <div style="width:60px;height:6px;border-radius:3px;background:var(--adm-border);overflow:hidden;">
+                        <div style="height:100%;width:{{ (c.qtd / max_conv_q * 100)|round(1) }}%;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:3px;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
     </div>
 
