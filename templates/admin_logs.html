@@ -1,0 +1,125 @@
+{% extends "base_admin.html" %}
+{% block title %}Logs de Atividade{% endblock %}
+{% block page_title %}Logs de Atividade{% endblock %}
+
+{% block content %}
+
+<!-- Stats -->
+<div class="adm-stats" style="grid-template-columns:repeat(5,1fr);">
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon" style="background:rgba(99,102,241,.12);color:#6366f1;"><i class="fas fa-list"></i></div>
+        <div class="adm-stat-num">{{ stats.total }}</div>
+        <div class="adm-stat-label">Total</div>
+    </div>
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon" style="background:rgba(59,130,246,.12);color:#3b82f6;"><i class="fas fa-circle-info"></i></div>
+        <div class="adm-stat-num">{{ stats.info }}</div>
+        <div class="adm-stat-label">Info</div>
+    </div>
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon" style="background:rgba(16,185,129,.12);color:#10b981;"><i class="fas fa-circle-check"></i></div>
+        <div class="adm-stat-num">{{ stats.sucesso }}</div>
+        <div class="adm-stat-label">Sucesso</div>
+    </div>
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;"><i class="fas fa-triangle-exclamation"></i></div>
+        <div class="adm-stat-num">{{ stats.alerta }}</div>
+        <div class="adm-stat-label">Alerta</div>
+    </div>
+    <div class="adm-stat-card">
+        <div class="adm-stat-icon" style="background:rgba(239,68,68,.12);color:#ef4444;"><i class="fas fa-circle-xmark"></i></div>
+        <div class="adm-stat-num">{{ stats.erro }}</div>
+        <div class="adm-stat-label">Erro</div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="adm-card" style="margin-bottom:20px;">
+    <form method="GET" action="{{ url_for('admin_logs') }}" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:16px 20px;">
+        <input type="text" name="busca" value="{{ filtro_busca }}" placeholder="Buscar ação, usuário..." style="padding:9px 14px;border-radius:var(--adm-radius-sm);border:1.5px solid var(--adm-border);font-size:.85rem;font-family:inherit;flex:1;min-width:180px;">
+        <select name="nivel" style="padding:9px 14px;border-radius:var(--adm-radius-sm);border:1.5px solid var(--adm-border);font-size:.85rem;font-family:inherit;">
+            <option value="">Todos os níveis</option>
+            <option value="info" {{ 'selected' if filtro_nivel == 'info' }}>Info</option>
+            <option value="sucesso" {{ 'selected' if filtro_nivel == 'sucesso' }}>Sucesso</option>
+            <option value="alerta" {{ 'selected' if filtro_nivel == 'alerta' }}>Alerta</option>
+            <option value="erro" {{ 'selected' if filtro_nivel == 'erro' }}>Erro</option>
+        </select>
+        <select name="papel" style="padding:9px 14px;border-radius:var(--adm-radius-sm);border:1.5px solid var(--adm-border);font-size:.85rem;font-family:inherit;">
+            <option value="">Todos os papéis</option>
+            <option value="admin" {{ 'selected' if filtro_papel == 'admin' }}>Admin</option>
+            <option value="medico" {{ 'selected' if filtro_papel == 'medico' }}>Médico</option>
+            <option value="recepcionista" {{ 'selected' if filtro_papel == 'recepcionista' }}>Recepcionista</option>
+            <option value="enfermeira" {{ 'selected' if filtro_papel == 'enfermeira' }}>Enfermeira</option>
+        </select>
+        <button type="submit" class="adm-btn primary" style="padding:9px 18px;"><i class="fas fa-search"></i> Filtrar</button>
+        <a href="{{ url_for('admin_logs') }}" class="adm-btn" style="padding:9px 18px;">Limpar</a>
+        <form method="POST" action="{{ url_for('admin_limpar_logs') }}" style="margin-left:auto;" onsubmit="return confirm('Deseja limpar todos os logs?');">
+            <button type="submit" class="adm-btn" style="padding:9px 18px;color:#ef4444;border:1.5px solid #fca5a5;background:rgba(239,68,68,.06);"><i class="fas fa-trash"></i> Limpar Logs</button>
+        </form>
+    </form>
+</div>
+
+<!-- Lista de Logs -->
+<div class="adm-card">
+    <div class="adm-card-header">
+        <h2><i class="fas fa-clock-rotate-left"></i> Atividades Recentes <small style="color:var(--adm-text-sec);font-weight:400;">({{ logs|length }} registros)</small></h2>
+    </div>
+    <div style="padding:0;">
+        {% if logs %}
+        {% set ns = namespace(data_atual='') %}
+        {% for log in logs %}
+            {% set data_log = log.criado_em[:10] %}
+            {% if data_log != ns.data_atual %}
+                {% set ns.data_atual = data_log %}
+                <div style="padding:10px 22px 6px;font-size:.76rem;font-weight:700;color:var(--adm-text-sec);text-transform:uppercase;background:var(--adm-bg);border-top:1px solid var(--adm-border);display:flex;align-items:center;gap:6px;">
+                    <i class="fas fa-calendar-day" style="opacity:.5;"></i>
+                    {{ data_log[8:10] }}/{{ data_log[5:7] }}/{{ data_log[:4] }}
+                </div>
+            {% endif %}
+            <div style="display:flex;align-items:center;gap:14px;padding:12px 22px;border-bottom:1px solid var(--adm-border);transition:.15s;{% if log.nivel == 'erro' %}border-left:3px solid #ef4444;{% elif log.nivel == 'alerta' %}border-left:3px solid #f59e0b;{% elif log.nivel == 'sucesso' %}border-left:3px solid #10b981;{% else %}border-left:3px solid #3b82f6;{% endif %}"
+                 onmouseover="this.style.background='var(--adm-bg)'" onmouseout="this.style.background=''">
+                <!-- Ícone -->
+                <div style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;
+                    {% if log.nivel == 'erro' %}background:rgba(239,68,68,.1);color:#ef4444;
+                    {% elif log.nivel == 'alerta' %}background:rgba(245,158,11,.1);color:#f59e0b;
+                    {% elif log.nivel == 'sucesso' %}background:rgba(16,185,129,.1);color:#10b981;
+                    {% else %}background:rgba(59,130,246,.1);color:#3b82f6;{% endif %}">
+                    <i class="fas {% if log.nivel == 'erro' %}fa-circle-xmark{% elif log.nivel == 'alerta' %}fa-triangle-exclamation{% elif log.nivel == 'sucesso' %}fa-circle-check{% else %}fa-circle-info{% endif %}"></i>
+                </div>
+                <!-- Corpo -->
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:.85rem;font-weight:700;color:var(--adm-text);">{{ log.acao }}</div>
+                    <div style="font-size:.78rem;color:var(--adm-text-sec);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ log.detalhes }}</div>
+                </div>
+                <!-- Meta -->
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;">
+                    <span style="font-size:.72rem;color:var(--adm-text-sec);display:flex;align-items:center;gap:4px;">
+                        <i class="fas fa-user"></i> {{ log.usuario_nome }}
+                        {% if log.papel %}<span class="adm-badge" style="font-size:.62rem;padding:1px 6px;
+                            {% if log.papel == 'admin' %}background:rgba(99,102,241,.12);color:#6366f1;
+                            {% elif log.papel == 'medico' %}background:rgba(16,185,129,.12);color:#059669;
+                            {% elif log.papel == 'recepcionista' %}background:rgba(245,158,11,.12);color:#d97706;
+                            {% elif log.papel == 'enfermeira' %}background:rgba(236,72,153,.12);color:#db2777;
+                            {% else %}background:rgba(107,114,128,.12);color:#6b7280;{% endif %}">{{ log.papel }}</span>{% endif %}
+                    </span>
+                    <span style="font-size:.68rem;color:var(--adm-text-sec);display:flex;align-items:center;gap:4px;">
+                        <i class="fas fa-clock"></i> {{ log.criado_em[11:19] }}
+                    </span>
+                    {% if log.ip %}
+                    <span style="font-size:.62rem;color:var(--adm-text-sec);opacity:.6;">
+                        <i class="fas fa-globe"></i> {{ log.ip }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+        {% else %}
+        <div style="text-align:center;padding:50px;color:var(--adm-text-sec);">
+            <i class="fas fa-inbox" style="font-size:2.5rem;margin-bottom:12px;display:block;opacity:.3;"></i>
+            <p style="font-size:.9rem;">Nenhum log encontrado.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

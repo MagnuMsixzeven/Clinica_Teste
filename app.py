@@ -194,6 +194,18 @@ def init_db():
             criado_em TEXT DEFAULT (datetime('now','localtime')),
             FOREIGN KEY (esp_id) REFERENCES especialidades(id)
         );
+
+        CREATE TABLE IF NOT EXISTS logs_atividade (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id TEXT,
+            usuario_nome TEXT,
+            papel TEXT,
+            acao TEXT NOT NULL,
+            detalhes TEXT,
+            nivel TEXT DEFAULT 'info',
+            ip TEXT,
+            criado_em TEXT DEFAULT (datetime('now','localtime'))
+        );
     ''')
     seed_data(conn)
     conn.close()
@@ -573,6 +585,24 @@ def criar_notificacao(conn, usuario_id, tipo, titulo, mensagem, agendamento_id=N
     )
 
 
+def registrar_log(acao, detalhes='', nivel='info', conn=None):
+    fechar = False
+    if conn is None:
+        conn = get_db()
+        fechar = True
+    uid = session.get('user_id', '')
+    unome = session.get('user_nome', 'Sistema')
+    papel = session.get('papel', '')
+    ip = request.remote_addr if request else ''
+    conn.execute(
+        "INSERT INTO logs_atividade (usuario_id, usuario_nome, papel, acao, detalhes, nivel, ip) VALUES (?,?,?,?,?,?,?)",
+        (uid, unome, papel, acao, detalhes, nivel, ip)
+    )
+    if fechar:
+        conn.commit()
+        conn.close()
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # FILTROS JINJA
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -748,6 +778,7 @@ def api_criar_agendamento():
             agendamento_id
         )
 
+    registrar_log('Novo agendamento', f'{dados["paciente_nome"]} — {esp["nome"]} em {data_fmt} às {dados["hora"]}', 'sucesso', conn)
     conn.commit()
     conn.close()
 
@@ -868,6 +899,7 @@ def login_page():
             session["user_foto"] = user["foto"]
             if user["prof_id"]:
                 session["prof_id"] = user["prof_id"]
+            registrar_log('Login', f'{user["nome"]} ({user["papel"]}) entrou no sistema', 'info')
             rota = {
                 "admin": "admin_dashboard",
                 "medico": "painel_profissional",
@@ -875,12 +907,15 @@ def login_page():
                 "enfermeira": "enfermeira_painel",
             }
             return redirect(url_for(rota.get(user["papel"], "home")))
+        registrar_log('Login falhou', f'Tentativa com login "{login}"', 'erro')
         flash("Usuário ou senha inválidos.", "error")
     return render_template("login.html")
 
 
 @app.route("/logout")
 def logout():
+    nome = session.get('user_nome', 'Desconhecido')
+    registrar_log('Logout', f'{nome} saiu do sistema', 'info')
     session.clear()
     return redirect(url_for("login_page"))
 
@@ -1307,6 +1342,7 @@ def recepcao_confirmar(ag_id):
 
     conn.commit()
     conn.close()
+    registrar_log('Confirmação', f'Recepção confirmou agendamento #{ag_id}', 'sucesso')
     flash("Agendamento confirmado!", "success")
     return redirect(url_for('recepcao_painel'))
 
@@ -1316,6 +1352,7 @@ def recepcao_confirmar(ag_id):
 def recepcao_cancelar(ag_id):
     conn = get_db()
     conn.execute("UPDATE agendamentos SET status='cancelado' WHERE id=?", (ag_id,))
+    registrar_log('Cancelamento', f'Recepção cancelou agendamento #{ag_id}', 'alerta', conn)
     conn.commit()
     conn.close()
     flash("Agendamento cancelado.", "info")
@@ -1382,6 +1419,7 @@ def recepcao_walkin():
             f"Procedimento: {esp['nome'] if esp else 'N/A'}\nHorário: {hora}\nSala: {sala or 'N/D'}",
             ag_id)
 
+    registrar_log('Encaixe', f'Recepção criou encaixe para {paciente_nome} às {hora}', 'info', conn)
     conn.commit()
     conn.close()
     flash(f"Paciente {paciente_nome} agendado para hoje às {hora}!", "success")
@@ -1419,6 +1457,7 @@ def recepcao_remarcar():
     conn.commit()
     conn.close()
     data_fmt = datetime.strptime(nova_data, "%Y-%m-%d").strftime("%d/%m/%Y")
+    registrar_log('Remarcação', f'Recepção remarcou agendamento #{ag_id} para {data_fmt} às {nova_hora}', 'alerta')
     flash(f"Agendamento remarcado para {data_fmt} às {nova_hora}.", "success")
     return redirect(url_for("recepcao_painel"))
 
@@ -2238,6 +2277,7 @@ def admin_toggle_usuario():
 def admin_cancelar(ag_id):
     conn = get_db()
     conn.execute("UPDATE agendamentos SET status='cancelado' WHERE id=?", (ag_id,))
+    registrar_log('Cancelamento', f'Agendamento #{ag_id} cancelado pelo admin', 'alerta', conn)
     conn.commit()
     conn.close()
     flash("Agendamento cancelado.", "info")
@@ -2254,6 +2294,7 @@ def admin_cancelar(ag_id):
 def admin_confirmar(ag_id):
     conn = get_db()
     conn.execute("UPDATE agendamentos SET status='confirmado' WHERE id=?", (ag_id,))
+    registrar_log('Confirmação', f'Agendamento #{ag_id} confirmado pelo admin', 'sucesso', conn)
     conn.commit()
     conn.close()
     flash("Agendamento confirmado!", "success")
@@ -2280,6 +2321,7 @@ def admin_remarcar():
     conn.close()
 
     data_fmt = datetime.strptime(nova_data, "%Y-%m-%d").strftime("%d/%m/%Y")
+    registrar_log('Remarcação', f'Agendamento #{ag_id} remarcado para {data_fmt} às {nova_hora}', 'alerta')
     flash(f"Agendamento remarcado para {data_fmt} às {nova_hora}.", "success")
 
     redirect_to = request.form.get("redirect", "")
@@ -2501,6 +2543,61 @@ def api_admin_financeiro():
         "por_tipo": [dict(r) for r in por_tipo],
         "por_convenio": [dict(r) for r in por_convenio],
     })
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ADMIN – Logs de Atividade
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/admin/logs")
+@admin_required
+def admin_logs():
+    conn = get_db()
+    filtro_nivel = request.args.get("nivel", "")
+    filtro_busca = request.args.get("busca", "")
+    filtro_papel = request.args.get("papel", "")
+
+    query = "SELECT * FROM logs_atividade WHERE 1=1"
+    params = []
+
+    if filtro_nivel:
+        query += " AND nivel=?"
+        params.append(filtro_nivel)
+    if filtro_papel:
+        query += " AND papel=?"
+        params.append(filtro_papel)
+    if filtro_busca:
+        query += " AND (acao LIKE ? OR detalhes LIKE ? OR usuario_nome LIKE ?)"
+        params.extend([f"%{filtro_busca}%"] * 3)
+
+    query += " ORDER BY criado_em DESC LIMIT 300"
+    logs = conn.execute(query, params).fetchall()
+
+    # Stats
+    stats = {}
+    for nivel in ['info', 'sucesso', 'alerta', 'erro']:
+        stats[nivel] = conn.execute(
+            "SELECT COUNT(*) FROM logs_atividade WHERE nivel=?", (nivel,)
+        ).fetchone()[0]
+    stats['total'] = sum(stats.values())
+
+    conn.close()
+    return render_template("admin_logs.html",
+        logs=[dict(l) for l in logs], stats=stats,
+        filtro_nivel=filtro_nivel, filtro_busca=filtro_busca, filtro_papel=filtro_papel,
+        nao_lidas=_admin_nao_lidas(get_db()), user=_admin_user())
+
+
+@app.route("/admin/logs/limpar", methods=["POST"])
+@admin_required
+def admin_limpar_logs():
+    conn = get_db()
+    conn.execute("DELETE FROM logs_atividade")
+    conn.commit()
+    conn.close()
+    registrar_log('Logs limpos', 'Todos os logs anteriores foram apagados pelo admin', 'alerta')
+    flash("Logs limpos com sucesso.", "info")
+    return redirect(url_for("admin_logs"))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

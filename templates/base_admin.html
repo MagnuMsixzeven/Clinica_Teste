@@ -44,6 +44,9 @@
     <a href="{{ url_for('admin_especialidades') }}" class="adm-nav-item {{ 'active' if request.endpoint == 'admin_especialidades' }}">
         <i class="fas fa-tooth"></i><span>Procedimentos</span>
     </a>
+    <a href="{{ url_for('admin_logs') }}" class="adm-nav-item {{ 'active' if request.endpoint == 'admin_logs' }}">
+        <i class="fas fa-clock-rotate-left"></i><span>Logs de Atividade</span>
+    </a>
             <div class="adm-user-block">
                 <div class="adm-user-avatar"><i class="fas fa-shield-halved"></i></div>
                 <div class="adm-user-info">
